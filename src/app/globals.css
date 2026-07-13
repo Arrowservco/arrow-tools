@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+/*
+ * BidLens design tokens — clean financial dashboard.
+ * Dark navy / slate base, white surfaces in light mode, restrained
+ * green/red status accents. Accessible contrast throughout.
+ */
+:root {
+  --background: #f4f6fa;
+  --foreground: #101828;
+  --card: #ffffff;
+  --card-foreground: #101828;
+  --muted: #eaeef4;
+  --muted-foreground: #51607a;
+  --primary: #14304f;
+  --primary-foreground: #f7fafc;
+  --secondary: #e4e9f1;
+  --secondary-foreground: #14304f;
+  --accent: #1d4ed8;
+  --accent-foreground: #ffffff;
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+  --success: #12704a;
+  --success-foreground: #ffffff;
+  --warning: #92600a;
+  --border: #d4dbe6;
+  --input: #cbd4e1;
+  --ring: #1d4ed8;
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: #0b1524;
+  --foreground: #e7edf5;
+  --card: #12213a;
+  --card-foreground: #e7edf5;
+  --muted: #1a2c49;
+  --muted-foreground: #93a5c0;
+  --primary: #dbe7f6;
+  --primary-foreground: #0b1524;
+  --secondary: #1d3050;
+  --secondary-foreground: #dbe7f6;
+  --accent: #5b8def;
+  --accent-foreground: #0b1524;
+  --destructive: #f28b82;
+  --destructive-foreground: #250706;
+  --success: #6fd0a5;
+  --success-foreground: #052015;
+  --warning: #ecc06a;
+  --border: #27395a;
+  --input: #31456a;
+  --ring: #5b8def;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+* {
+  border-color: var(--border);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
