@@ -1,0 +1,243 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "BidLens API",
+    "version": "0.1.0",
+    "description": "Evaluate a Mac.bid listing screenshot for eBay resale profitability. All financial math is deterministic; AI is used only for extraction and market research. Use provider 'demo' to exercise the full pipeline without any AI key."
+  },
+  "servers": [{ "url": "/" }],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Set BIDLENS_API_TOKEN on the server and send it as a Bearer token. Same-origin browser calls and local development (no token configured) do not require it."
+      }
+    },
+    "schemas": {
+      "ProviderConfig": {
+        "type": "object",
+        "properties": {
+          "provider": { "type": "string", "enum": ["openai", "anthropic", "gemini", "demo"], "default": "demo" },
+          "apiKey": { "type": "string", "description": "Optional; falls back to the provider's server env var." },
+          "model": { "type": "string" },
+          "webResearchEnabled": { "type": "boolean", "default": true },
+          "maxResearchCalls": { "type": "integer", "minimum": 1, "maximum": 10, "default": 3 }
+        }
+      },
+      "ListingOverrides": {
+        "type": "object",
+        "description": "Optional user corrections applied before evaluation (all prices in dollars).",
+        "properties": {
+          "title": { "type": "string" },
+          "brand": { "type": ["string", "null"] },
+          "model": { "type": ["string", "null"] },
+          "condition": { "type": "string", "enum": ["new", "like_new", "open_box", "used", "damaged", "parts_only", "unknown"] },
+          "currentBid": { "type": ["number", "null"] },
+          "instantWin": { "type": ["number", "null"] },
+          "retailPrice": { "type": ["number", "null"] },
+          "protectionPrice": { "type": ["number", "null"] },
+          "protectionEnabled": { "type": "boolean" },
+          "useDisplayedTotal": { "type": "boolean" }
+        }
+      },
+      "EvaluationResponse": {
+        "type": "object",
+        "properties": {
+          "evaluationId": { "type": "string" },
+          "status": { "type": "string", "enum": ["complete"] },
+          "demo": { "type": "boolean" },
+          "product": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "brand": { "type": ["string", "null"] },
+              "model": { "type": ["string", "null"] },
+              "condition": { "type": "string" },
+              "identityConfidence": { "type": "number" }
+            }
+          },
+          "macBid": {
+            "type": "object",
+            "properties": {
+              "currentBid": { "type": ["number", "null"] },
+              "instantWinPrice": { "type": ["number", "null"] },
+              "protectionPrice": { "type": ["number", "null"] },
+              "protectionEnabled": { "type": "boolean" },
+              "currentAllInCost": { "type": ["number", "null"] },
+              "instantWinAllInCost": { "type": ["number", "null"] }
+            }
+          },
+          "resale": {
+            "type": "object",
+            "properties": {
+              "quickSalePrice": { "type": ["number", "null"] },
+              "expectedPrice": { "type": ["number", "null"] },
+              "patientPrice": { "type": ["number", "null"] },
+              "researchConfidence": { "type": "number" },
+              "evidenceGrade": { "type": "string", "enum": ["strong_sold", "partial_sold", "active_only", "insufficient"] },
+              "provisional": { "type": "boolean" }
+            }
+          },
+          "shipping": {
+            "type": "object",
+            "properties": {
+              "buyerPaidCharge": { "type": "number" },
+              "estimatedLabelCost": { "type": "number" },
+              "conservativeLabelCost": { "type": "number" },
+              "packagingCost": { "type": "number" },
+              "confidence": { "type": "number" },
+              "band": { "type": "string" }
+            }
+          },
+          "profitability": {
+            "type": "object",
+            "properties": {
+              "conservativeNetProfit": { "type": ["number", "null"] },
+              "expectedNetProfit": { "type": ["number", "null"] },
+              "bestReasonableNetProfit": { "type": ["number", "null"] },
+              "conservativeRoi": { "type": ["number", "null"] },
+              "expectedRoi": { "type": ["number", "null"] }
+            }
+          },
+          "recommendation": {
+            "type": "object",
+            "properties": {
+              "verdict": { "type": "string", "enum": ["strong_buy", "buy_below", "borderline", "pass", "insufficient_evidence", "confirm_product"] },
+              "detail": { "type": "string" },
+              "maximumBid": { "type": ["number", "null"] },
+              "maximumProtectedBid": { "type": ["number", "null"] },
+              "maximumInstantWinPrice": { "type": ["number", "null"] },
+              "instantWinVerdict": { "type": "string" }
+            }
+          },
+          "velocity": {
+            "type": "object",
+            "properties": {
+              "score": { "type": "integer" },
+              "label": { "type": "string", "enum": ["very_fast", "fast", "moderate", "slow", "dead_inventory_risk"] },
+              "confidence": { "type": "number" }
+            }
+          },
+          "risks": { "type": "array", "items": { "type": "object" } },
+          "assumptions": { "type": "array", "items": { "type": "object" } },
+          "sources": { "type": "array", "items": { "type": "object" } },
+          "explanation": { "type": ["string", "null"] }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" },
+          "retryable": { "type": "boolean" }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/api/v1/evaluate": {
+      "post": {
+        "operationId": "evaluateScreenshot",
+        "summary": "Evaluate a Mac.bid screenshot end to end",
+        "description": "Runs extraction, product research, and the deterministic profitability engine. Use provider 'demo' (and omit the image) to test without keys.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "image": { "type": "string", "format": "binary", "description": "PNG/JPEG/WebP screenshot, ≤ 8 MB. Optional when provider=demo." },
+                  "provider": { "type": "string", "description": "JSON-encoded ProviderConfig." },
+                  "profile": { "type": "string", "description": "JSON-encoded partial SourcingProfile (merged onto Eric Standard defaults)." },
+                  "overrides": { "type": "string", "description": "JSON-encoded ListingOverrides." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Evaluation complete", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EvaluationResponse" } } } },
+          "400": { "description": "Bad request / missing key or image", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+          "401": { "description": "Unauthorized (bad token or provider key)" },
+          "413": { "description": "Image too large" },
+          "415": { "description": "Unsupported image type" },
+          "429": { "description": "Provider quota exceeded" },
+          "502": { "description": "Provider failure" }
+        }
+      }
+    },
+    "/api/v1/evaluations/{id}": {
+      "get": {
+        "operationId": "getEvaluation",
+        "summary": "Fetch a stored evaluation (server store; API-created evaluations only)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "responses": {
+          "200": { "description": "Evaluation", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EvaluationResponse" } } } },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/api/v1/evaluations/{id}/recalculate": {
+      "post": {
+        "operationId": "recalculateEvaluation",
+        "summary": "Re-run the deterministic calculators with new assumptions (no AI calls)",
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "overrides": { "$ref": "#/components/schemas/ListingOverrides" },
+                  "profile": { "type": "object", "description": "Partial SourcingProfile" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Recalculated evaluation", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EvaluationResponse" } } } },
+          "404": { "description": "Not found" }
+        }
+      }
+    },
+    "/api/v1/providers/test": {
+      "post": {
+        "operationId": "testProvider",
+        "summary": "Test an AI provider connection",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ProviderConfig" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Connection result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "modelUsed": { "type": "string" },
+                    "keySource": { "type": "string", "enum": ["user", "environment", "none"] }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "operationId": "health",
+        "summary": "Health check",
+        "security": [],
+        "responses": { "200": { "description": "OK" } }
+      }
+    }
+  }
+}
