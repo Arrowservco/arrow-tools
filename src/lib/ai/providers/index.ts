@@ -1,20 +1,24 @@
-import type { AIProvider, ProviderConfig } from "@/lib/ai/providers/types";
+import { ProviderError, type AIProvider, type ProviderConfig } from "@/lib/ai/providers/types";
 import { AnthropicProvider } from "@/lib/ai/providers/anthropic";
-import { OpenAIProvider } from "@/lib/ai/providers/openai";
-import { GeminiProvider } from "@/lib/ai/providers/gemini";
 import { DemoProvider } from "@/lib/ai/providers/demo";
 
-/** Server-side factory. Never call from client code — keys live server-side. */
+/**
+ * Server-side factory. Anthropic is the only live AI provider; Demo runs the
+ * bundled Zircon fixture with no key. Never call from client code — keys live
+ * server-side.
+ */
 export function createProvider(config: ProviderConfig): AIProvider {
   switch (config.provider) {
-    case "openai":
-      return new OpenAIProvider(config);
     case "anthropic":
       return new AnthropicProvider(config);
-    case "gemini":
-      return new GeminiProvider(config);
     case "demo":
       return new DemoProvider();
+    default:
+      throw new ProviderError(
+        `Provider "${config.provider}" is not supported. This build uses Anthropic only.`,
+        "provider_error",
+        false,
+      );
   }
 }
 

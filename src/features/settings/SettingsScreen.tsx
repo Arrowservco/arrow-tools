@@ -22,9 +22,7 @@ import { dollarsToCents } from "@/lib/money";
 
 const PROVIDER_INFO: Record<ProviderId, { label: string; envVar: string; defaultModel: string }> = {
   demo: { label: "Demo (no key needed)", envVar: "—", defaultModel: "demo" },
-  openai: { label: "OpenAI", envVar: "OPENAI_API_KEY", defaultModel: "gpt-4o" },
-  anthropic: { label: "Anthropic", envVar: "ANTHROPIC_API_KEY", defaultModel: "claude-opus-4-8" },
-  gemini: { label: "Google Gemini", envVar: "GOOGLE_GENERATIVE_AI_API_KEY", defaultModel: "gemini-2.5-flash" },
+  anthropic: { label: "Anthropic (Claude)", envVar: "ANTHROPIC_API_KEY", defaultModel: "claude-opus-4-8" },
 };
 
 export function SettingsScreen() {

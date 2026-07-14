@@ -4,7 +4,7 @@ import type { AIProvider, ProviderConfig, ProviderId } from "@/lib/ai/providers/
 export { assembleEvaluation, mergeProfile, type AssembleArgs } from "@/lib/pipeline";
 
 export const providerConfigSchema = z.object({
-  provider: z.enum(["openai", "anthropic", "gemini", "demo"]).default("demo"),
+  provider: z.enum(["anthropic", "demo"]).catch("demo").default("demo"),
   apiKey: z.string().optional(),
   model: z.string().optional(),
   webResearchEnabled: z.boolean().default(true),

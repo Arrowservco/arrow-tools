@@ -7,7 +7,7 @@ import type {
   ShippingResearch,
 } from "@/lib/ai/schemas/research";
 
-export type ProviderId = "openai" | "anthropic" | "gemini" | "demo";
+export type ProviderId = "anthropic" | "demo";
 
 export interface ProviderConfig {
   provider: ProviderId;
