@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { History, ScanSearch, Settings } from "lucide-react";
+import { Flame, History, ScanSearch, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/", label: "Analyze", icon: ScanSearch },
   { href: "/history", label: "History", icon: History },
+  { href: "/habits", label: "Habits", icon: Flame },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -18,7 +19,7 @@ export function BottomNav() {
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
-      <div className="mx-auto grid max-w-3xl grid-cols-3 lg:max-w-5xl">
+      <div className="mx-auto grid max-w-3xl grid-cols-4 lg:max-w-5xl">
         {items.map(({ href, label, icon: Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
