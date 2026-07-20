@@ -26,6 +26,12 @@ never computes the numbers.
   mark Won-Lost / actual-outcome tracking (predicted vs. actual).
 - **Settings:** AI provider picker (OpenAI / Anthropic / Gemini / Demo), session-only API key, model,
   Test Connection, web-research toggle, research-call budget, and the full Eric Standard sourcing profile.
+- **Habits:** a points-based daily wellness tracker (`/habits`) — check off the daily system (pushups,
+  zone 2 walk, shoulder / mobility / core work, Turkish get-ups, fast until 1pm, no sugar, supplements,
+  meditation), earn points toward an editable daily goal, and keep a streak. Includes a yesterday recap,
+  a 14-day consistency chart, a 12-week heatmap, per-habit completion rates, a habit editor (rename,
+  retune points with automatic history rescoring, reorder, archive), and JSON export/import. All data is
+  local (IndexedDB); the scoring and streak math is deterministic, unit-tested TypeScript.
 
 ## Installation
 
