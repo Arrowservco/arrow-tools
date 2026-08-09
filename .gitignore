@@ -44,3 +44,8 @@ next-env.d.ts
 .bidlens-data/
 test-results/
 playwright-report/
+
+# Arrow Habits standalone app
+habits-app/node_modules/
+habits-app/.next/
+habits-app/out/

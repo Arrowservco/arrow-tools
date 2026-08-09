@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Standalone habit tracker app; has its own toolchain.
+    "habits-app/**",
   ]),
 ]);
 

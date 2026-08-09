@@ -1,0 +1,5 @@
+# Netlify configuration for Arrow Habits (static Next.js export).
+# Used when a Netlify site sets its base directory to habits-app/.
+[build]
+  command = "npm install && npm run build"
+  publish = "out"
