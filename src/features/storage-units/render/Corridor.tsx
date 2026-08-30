@@ -134,7 +134,7 @@ export function Corridor({ grid, lightSystem, wallColor, floorColor, exit, criti
         rotation={[Math.PI / 2, 0, 0]}
       >
         <planeGeometry args={[grid.width * CELL_SIZE, grid.height * CELL_SIZE]} />
-        <meshBasicMaterial map={cageTexture} color="#c7c9c2" transparent opacity={0.85} side={THREE.DoubleSide} />
+        <meshBasicMaterial map={cageTexture} side={THREE.DoubleSide} />
       </mesh>
       <mesh
         position={[(grid.width * CELL_SIZE) / 2, DECK_HEIGHT, (grid.height * CELL_SIZE) / 2]}

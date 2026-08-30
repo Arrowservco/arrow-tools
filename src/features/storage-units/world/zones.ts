@@ -25,12 +25,15 @@ export interface ZoneVisuals {
   ambience: "aisle" | "hvac" | "hum" | "sublevel" | "office";
 }
 
+// Both colors are multiplied over an already-colored base (the wall texture bakes in its
+// own white-partition/blue-door colors; FLOOR_MATERIAL_COLOR carries each floor material's
+// real color), so these stay close to white — a per-zone wash, not an independent color.
 export const ZONE_VISUALS: Record<number, ZoneVisuals> = {
-  0: { wallColor: "#b9b5a8", floorColor: "#6f6f6a", ceilingGap: true, emergencyLighting: false, ambience: "aisle" },
-  1: { wallColor: "#b9b5a8", floorColor: "#6f6f6a", ceilingGap: true, emergencyLighting: false, ambience: "hum" },
-  2: { wallColor: "#c9c6ba", floorColor: "#8a7f66", ceilingGap: true, emergencyLighting: false, ambience: "hvac" },
-  3: { wallColor: "#96938a", floorColor: "#565853", ceilingGap: true, emergencyLighting: true, ambience: "sublevel" },
-  4: { wallColor: "#d8d3c2", floorColor: "#7c6a4f", ceilingGap: false, emergencyLighting: false, ambience: "office" },
+  0: { wallColor: "#ffffff", floorColor: "#ffffff", ceilingGap: true, emergencyLighting: false, ambience: "aisle" },
+  1: { wallColor: "#ffffff", floorColor: "#ffffff", ceilingGap: true, emergencyLighting: false, ambience: "hum" },
+  2: { wallColor: "#f5f4ef", floorColor: "#ffffff", ceilingGap: true, emergencyLighting: false, ambience: "hvac" },
+  3: { wallColor: "#c7c9c4", floorColor: "#9aa39e", ceilingGap: true, emergencyLighting: true, ambience: "sublevel" },
+  4: { wallColor: "#fbf6ea", floorColor: "#ffffff", ceilingGap: false, emergencyLighting: false, ambience: "office" },
 };
 
 const AISLE_LAYOUT = {

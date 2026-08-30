@@ -89,8 +89,8 @@ export function worldToCell(worldX: number, worldZ: number): [number, number] {
 }
 
 export const FLOOR_MATERIAL_COLOR: Record<FloorMaterial, string> = {
-  [FloorMaterial.Concrete]: "#6f6f6a",
-  [FloorMaterial.Carpet]: "#5a5342",
-  [FloorMaterial.Wet]: "#4a5250",
-  [FloorMaterial.Drain]: "#3a3d3b",
+  [FloorMaterial.Concrete]: "#c9b48c",
+  [FloorMaterial.Carpet]: "#8a8a86",
+  [FloorMaterial.Wet]: "#59615d",
+  [FloorMaterial.Drain]: "#41443f",
 };

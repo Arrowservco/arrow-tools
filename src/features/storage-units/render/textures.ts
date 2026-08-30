@@ -2,7 +2,13 @@
 
 import * as THREE from "three";
 
-/** Corrugated roll-up door texture: vertical ribs, a track frame, and a handle bar. */
+/**
+ * One wall panel: a white partition surface with a blue roll-up door (or, rarely, a
+ * repainted grey one) inset in the middle — matching a real storage corridor, where most
+ * of the wall is plain and the door is the accent, not the other way around. Baked
+ * straight into the canvas rather than split across separate wall/door geometry, so the
+ * per-zone wall tint (multiplied over this texture) only needs to stay close to white.
+ */
 export function makeDoorTexture(paintedGrey: boolean): THREE.CanvasTexture {
   const size = 256;
   const canvas = document.createElement("canvas");
@@ -10,27 +16,40 @@ export function makeDoorTexture(paintedGrey: boolean): THREE.CanvasTexture {
   canvas.height = size;
   const ctx = canvas.getContext("2d")!;
 
-  const base = paintedGrey ? "#8a8f93" : "#c2733a";
-  const shade = paintedGrey ? "#71767a" : "#9c5a2b";
-  ctx.fillStyle = base;
+  ctx.fillStyle = "#f0f0ee";
   ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = "#dcdcd8";
+  ctx.fillRect(0, size - 10, size, 10); // base/kick plate line
 
-  const ribWidth = 10;
-  for (let x = 0; x < size; x += ribWidth) {
-    ctx.fillStyle = (x / ribWidth) % 2 === 0 ? shade : base;
-    ctx.fillRect(x, 0, ribWidth / 2, size);
+  const doorBase = paintedGrey ? "#9aa0a6" : "#1f4fc4";
+  const doorShade = paintedGrey ? "#80868c" : "#173d99";
+  const doorLeft = size * 0.13;
+  const doorRight = size * 0.87;
+  const doorTop = size * 0.06;
+  const doorBottom = size * 0.92;
+  const doorWidth = doorRight - doorLeft;
+
+  // Track frame around the door opening.
+  ctx.fillStyle = "#1a2036";
+  ctx.fillRect(doorLeft - 6, doorTop - 6, doorWidth + 12, doorBottom - doorTop + 12);
+
+  // Corrugated ribs, clipped to the door opening.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(doorLeft, doorTop, doorWidth, doorBottom - doorTop);
+  ctx.clip();
+  ctx.fillStyle = doorBase;
+  ctx.fillRect(doorLeft, doorTop, doorWidth, doorBottom - doorTop);
+  const ribWidth = 9;
+  for (let x = doorLeft; x < doorRight; x += ribWidth) {
+    ctx.fillStyle = (Math.round((x - doorLeft) / ribWidth)) % 2 === 0 ? doorShade : doorBase;
+    ctx.fillRect(x, doorTop, ribWidth / 2, doorBottom - doorTop);
   }
-
-  // Track frame.
-  ctx.fillStyle = "#4a4844";
-  ctx.fillRect(0, 0, size, 10);
-  ctx.fillRect(0, size - 14, size, 14);
-  ctx.fillRect(0, 0, 8, size);
-  ctx.fillRect(size - 8, 0, 8, size);
+  ctx.restore();
 
   // Handle.
-  ctx.fillStyle = "#2c2b28";
-  ctx.fillRect(size / 2 - 24, size - 40, 48, 8);
+  ctx.fillStyle = "#12162a";
+  ctx.fillRect(size / 2 - 20, doorBottom - 28, 40, 7);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
@@ -39,25 +58,27 @@ export function makeDoorTexture(paintedGrey: boolean): THREE.CanvasTexture {
   return texture;
 }
 
-/** Concrete-with-taped-lines floor texture, tiled across the whole zone. */
+/**
+ * Neutral speckled floor texture, tiled across the whole zone. Deliberately close to
+ * mid-grey rather than tinted toward either the tan polished-concrete or grey-carpet
+ * look, since Corridor.tsx multiplies this against a per-cell material color — a neutral
+ * base keeps that multiply honest for both.
+ */
 export function makeFloorTexture(): THREE.CanvasTexture {
   const size = 512;
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "#6f6f6a";
+  ctx.fillStyle = "#b3b3ae";
   ctx.fillRect(0, 0, size, size);
-  ctx.globalAlpha = 0.5;
+  ctx.globalAlpha = 0.4;
   for (let i = 0; i < 4000; i++) {
     const v = Math.random() * 40 - 20;
-    ctx.fillStyle = v > 0 ? "#7c7c76" : "#63635e";
+    ctx.fillStyle = v > 0 ? "#bfbfba" : "#a3a39e";
     ctx.fillRect(Math.random() * size, Math.random() * size, 1.5, 1.5);
   }
   ctx.globalAlpha = 1;
-  ctx.strokeStyle = "#c9a53a";
-  ctx.lineWidth = 3;
-  ctx.strokeRect(8, 8, size - 16, size - 16);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
@@ -66,18 +87,18 @@ export function makeFloorTexture(): THREE.CanvasTexture {
   return texture;
 }
 
-/** Wire-mesh security cage texture for the open-plenum ceiling. */
+/** White drop-ceiling tile texture, with faint panel seams. */
 export function makeCageTexture(): THREE.CanvasTexture {
   const size = 128;
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "#2a2a28";
+  ctx.fillStyle = "#f2f2ef";
   ctx.fillRect(0, 0, size, size);
-  ctx.strokeStyle = "#57564f";
+  ctx.strokeStyle = "#d7d7d2";
   ctx.lineWidth = 2;
-  const step = 16;
+  const step = 32;
   for (let x = 0; x <= size; x += step) {
     ctx.beginPath();
     ctx.moveTo(x, 0);
@@ -127,12 +148,12 @@ export function makePlacardTexture(label: string): THREE.CanvasTexture {
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = "#14304f";
+  ctx.fillStyle = "#173d99";
   ctx.fillRect(0, 0, w, h);
-  ctx.strokeStyle = "#e8ead9";
+  ctx.strokeStyle = "#f2f2ef";
   ctx.lineWidth = 4;
   ctx.strokeRect(6, 6, w - 12, h - 12);
-  ctx.fillStyle = "#e8ead9";
+  ctx.fillStyle = "#f2f2ef";
   ctx.font = "bold 36px sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
