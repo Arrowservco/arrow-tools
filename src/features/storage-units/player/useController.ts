@@ -47,6 +47,8 @@ export function useController(canvas: HTMLCanvasElement | null) {
 
   useEffect(() => {
     if (!canvas) return;
+    const isTouchPrimary = window.matchMedia?.("(pointer: coarse)").matches ?? false;
+
     const onMouseMove = (e: MouseEvent) => {
       if (document.pointerLockElement !== canvas) return;
       state.current.lookDeltaX += e.movementX;
@@ -56,17 +58,51 @@ export function useController(canvas: HTMLCanvasElement | null) {
       state.current.pointerLocked = document.pointerLockElement === canvas;
     };
     const onClick = () => {
-      if (document.pointerLockElement !== canvas) {
+      // Pointer Lock is a desktop mouse-look mechanism; a touch-primary device looks
+      // around via direct finger drag instead (below), so never request it there.
+      if (!isTouchPrimary && document.pointerLockElement !== canvas) {
         canvas.requestPointerLock?.();
       }
     };
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("pointerlockchange", onLockChange);
     canvas.addEventListener("click", onClick);
+
+    // Touch-look: a finger drag anywhere on the canvas (the movement stick is a separate
+    // element layered on top, so drags starting on it never reach here) turns the camera,
+    // the same way a mouse move does under pointer lock.
+    let activeTouchId: number | null = null;
+    let lastX = 0;
+    let lastY = 0;
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType !== "touch") return;
+      activeTouchId = e.pointerId;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerType !== "touch" || e.pointerId !== activeTouchId) return;
+      state.current.lookDeltaX += e.clientX - lastX;
+      state.current.lookDeltaY += e.clientY - lastY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    };
+    const onPointerEnd = (e: PointerEvent) => {
+      if (e.pointerId === activeTouchId) activeTouchId = null;
+    };
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerup", onPointerEnd);
+    canvas.addEventListener("pointercancel", onPointerEnd);
+
     return () => {
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("pointerlockchange", onLockChange);
       canvas.removeEventListener("click", onClick);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerup", onPointerEnd);
+      canvas.removeEventListener("pointercancel", onPointerEnd);
     };
   }, [canvas]);
 

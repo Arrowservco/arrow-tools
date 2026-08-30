@@ -101,7 +101,10 @@ export default function Game() {
   const paused = phase !== "playing";
 
   return (
-    <div className="relative h-full w-full select-none overflow-hidden bg-black" data-testid="storage-units-root">
+    <div
+      className="relative h-full w-full touch-none select-none overflow-hidden bg-black"
+      data-testid="storage-units-root"
+    >
       <Canvas
         gl={{ antialias: true }}
         camera={{ fov: settings.fov, near: 0.05, far: 120 }}

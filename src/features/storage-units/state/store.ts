@@ -12,6 +12,15 @@ export interface GameSettings {
   touchControls: boolean;
 }
 
+// Only used for a first-ever run (no persisted settings yet) — a device whose primary
+// pointer is a finger, not a mouse/trackpad, should see the touch stick without having to
+// find it in Settings first. A returning user's explicit choice always overrides this,
+// since the persist middleware layers saved state on top of these defaults.
+function defaultTouchControls(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia?.("(pointer: coarse)").matches ?? false;
+}
+
 export const DEFAULT_SETTINGS: GameSettings = {
   fov: 78,
   headBob: true,
@@ -19,7 +28,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   flickerReduction: false,
   guided: false,
   volume: 0.7,
-  touchControls: false,
+  touchControls: defaultTouchControls(),
 };
 
 export type GamePhase = "title" | "playing" | "paused" | "zoneComplete" | "loopComplete";
