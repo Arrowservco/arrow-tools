@@ -31,6 +31,12 @@ export default function Game() {
   const [interactLabel, setInteractLabel] = useState<string | null>(null);
   const [blind, setBlind] = useState(false);
   const [showTitleSettings, setShowTitleSettings] = useState(false);
+  // Detected independently of the persisted setting, and OR'd into it below, so a stale
+  // or wrong touchControls value can never hide the stick on a device that actually needs
+  // it — only ever add it for a desktop user who's opted in. Lazy-initialized rather than
+  // read in an effect: this component is client-only (behind next/dynamic ssr:false), so
+  // window is always available on first render here.
+  const [isTouchDevice] = useState(() => window.matchMedia?.("(pointer: coarse)").matches ?? false);
 
   const audioRef = useRef<AudioEngine | null>(null);
   const setTouchVectorRef = useRef<((forward: number, strafe: number) => void) | null>(null);
@@ -142,8 +148,8 @@ export default function Game() {
 
       {phase === "playing" && (
         <>
-          <Hud interactLabel={interactLabel} />
-          {settings.touchControls && (
+          <Hud interactLabel={interactLabel} onPause={() => setPhase("paused")} />
+          {(settings.touchControls || isTouchDevice) && (
             <TouchControls onMove={(f, s) => setTouchVectorRef.current?.(f, s)} />
           )}
         </>

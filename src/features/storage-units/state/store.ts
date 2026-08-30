@@ -102,7 +102,10 @@ export const useGameStore = create<GameState>()(
       returnToTitle: () => set({ phase: "title" }),
     }),
     {
-      name: "storage-units:v1",
+      // Bumped from v1: earlier builds persisted touchControls: false unconditionally
+      // (before the device-aware default existed), and that stale value would otherwise
+      // permanently shadow the new default on any device that had already loaded the game.
+      name: "storage-units:v2",
       partialize: (s) => ({
         settings: s.settings,
         completedRuns: s.completedRuns,
