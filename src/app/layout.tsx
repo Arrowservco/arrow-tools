@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
 import "./globals.css";
-import { BottomNav } from "@/components/shell/BottomNav";
+import { AppShell } from "@/components/shell/AppShell";
 import { ServiceWorkerRegistrar } from "@/components/shell/ServiceWorkerRegistrar";
 
 export const metadata: Metadata = {
@@ -27,10 +27,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className="h-full antialiased">
       <body className="flex min-h-dvh flex-col">
-        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 pb-24 pt-4 lg:max-w-5xl">
-          {children}
-        </div>
-        <BottomNav />
+        <AppShell>{children}</AppShell>
         <Toaster position="top-center" richColors closeButton />
         <ServiceWorkerRegistrar />
       </body>
