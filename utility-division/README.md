@@ -23,7 +23,8 @@ North is checked first, as in the workbook's formula. City matching ignores capi
 ## Differences from the workbook
 
 - Electric accounts whose city is in neither list show a warning with one-click "Add to North / South"
-  instead of a silent blank. `BARNSTABLE - BAR` is in the workbook's dropdown but in neither list, so it
-  returned a blank there; the Lists tab flags it.
+  instead of a silent blank.
+- `BARNSTABLE - BAR` is in the workbook's dropdown but was in neither list, so it returned a blank there.
+  It is now in the South list (division 70).
 - `Framingham` is in both lists. North wins (80), as in the workbook. The Lists tab flags the overlap.
 - The first four rows are examples. Use **Clear examples** to start fresh.
