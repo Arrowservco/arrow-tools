@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Utility Division Lookup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one working sheet (account, city, auto utility, auto division) with a Lists tab for the lookup tables. */
+:root {
+  --bg: #f1f4f7;
+  --surface: #ffffff;
+  --surface-2: #f6f8fa;
+  --fg: #14202b;
+  --muted: #566877;
+  --line: #d6dee5;
+  --accent: #1f4e79;
+  --accent-fg: #ffffff;
+  --gas: #8a5200;       --gas-bg: #fcefd3;
+  --north: #1b4d8f;     --north-bg: #e2ecf9;
+  --south: #0c6656;     --south-bg: #dcf2ec;
+  --warn: #a3262a;      --warn-bg: #fbe3e3;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --radius: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e161d; --surface: #16212a; --surface-2: #1c2933; --fg: #e5ecf1; --muted: #93a5b3; --line: #2a3945;
+    --accent: #7fb2e5; --accent-fg: #0e161d;
+    --gas: #f0b95a; --gas-bg: #3a2a0c;
+    --north: #93bcf2; --north-bg: #172d4a;
+    --south: #72d6c2; --south-bg: #0f3a32;
+    --warn: #f28f92; --warn-bg: #3d1a1c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e161d; --surface: #16212a; --surface-2: #1c2933; --fg: #e5ecf1; --muted: #93a5b3; --line: #2a3945;
+  --accent: #7fb2e5; --accent-fg: #0e161d;
+  --gas: #f0b95a; --gas-bg: #3a2a0c;
+  --north: #93bcf2; --north-bg: #172d4a;
+  --south: #72d6c2; --south-bg: #0f3a32;
+  --warn: #f28f92; --warn-bg: #3d1a1c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.45 var(--font-sans); margin: 0; padding-inline: 16px; padding-block: 16px 5rem; }
+.wrap { max-width: 62rem; margin-inline: auto; display: flex; flex-direction: column; gap: 14px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 10px 16px; }
+h1 { font-size: 1.35rem; line-height: 1.2; margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+.rules { margin: 4px 0 0; color: var(--muted); font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 2px 14px; }
+.rules b { font-family: var(--font-mono); font-weight: 600; color: var(--fg); }
+.tabs { display: flex; gap: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 3px; }
+.tab { border: 0; background: transparent; padding: 6px 14px; border-radius: 4px; cursor: pointer; color: var(--muted); font-weight: 500; }
+.tab[aria-selected="true"] { background: var(--accent); color: var(--accent-fg); }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: 8px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; display: flex; flex-direction: column; min-width: 0; }
+.stat .n { font: 600 1.4rem/1.2 var(--font-mono); font-variant-numeric: tabular-nums; }
+.stat .l { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.stat.gas .n { color: var(--gas); } .stat.north .n { color: var(--north); } .stat.south .n { color: var(--south); }
+.stat.warn.on { border-color: var(--warn); background: var(--warn-bg); } .stat.warn.on .n { color: var(--warn); }
+
+.note { background: var(--surface); border: 1px dashed var(--line); border-radius: var(--radius); padding: 8px 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 0.88rem; }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 7px 12px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn.danger.armed { background: var(--warn-bg); color: var(--warn); border-color: var(--warn); }
+.btn.small { padding: 3px 8px; font-size: 0.8rem; }
+.spacer { flex: 1; }
+
+.sheet { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.row, .head { display: grid; gap: 8px; align-items: start; padding: 6px 10px; grid-template-columns: 2rem minmax(10rem, 1.2fr) minmax(12rem, 1.8fr) 6.5rem minmax(10rem, 1.1fr) 2rem; }
+.row + .row { border-top: 1px solid var(--line); }
+.head { position: sticky; top: env(safe-area-inset-top, 0px); background: var(--surface-2); border-bottom: 1px solid var(--line); border-radius: var(--radius) var(--radius) 0 0; color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; align-items: center; z-index: 2; }
+.idx { color: var(--muted); font: 0.8rem var(--font-mono); padding-top: 9px; text-align: right; }
+.row input { width: 100%; min-width: 0; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; }
+.row input.acct { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.row input:focus { background: var(--surface); }
+.util { padding-top: 7px; min-width: 0; }
+.pill { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; border: 1px solid transparent; }
+.pill.gas { color: var(--gas); background: var(--gas-bg); } .pill.electric { color: var(--north); background: var(--north-bg); }
+.pill.none { color: var(--muted); font-weight: 400; }
+.div { min-width: 0; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.chip { font: 600 1.05rem/1.2 var(--font-mono); font-variant-numeric: tabular-nums; padding: 3px 12px; border-radius: 4px; margin-top: 3px; min-width: 3.4rem; text-align: center; }
+.chip.gas { color: var(--gas); background: var(--gas-bg); } .chip.north { color: var(--north); background: var(--north-bg); } .chip.south { color: var(--south); background: var(--south-bg); }
+.chip.warn { color: var(--warn); background: var(--warn-bg); } .chip.empty { color: var(--muted); background: transparent; }
+.msg { font-size: 0.8rem; color: var(--warn); display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+.msg.soft { color: var(--muted); }
+.clear { border: 0; background: transparent; color: var(--muted); font-size: 1.2rem; line-height: 1; cursor: pointer; padding: 6px 4px; border-radius: 4px; }
+.clear:hover { color: var(--warn); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.panel h2 { font-size: 1rem; margin: 0; font-weight: 600; }
+.panel p { margin: 0; color: var(--muted); font-size: 0.88rem; max-width: 65ch; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.field input, .field select, .field textarea { background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px; width: 100%; min-width: 0; }
+.field textarea { height: 18rem; resize: vertical; font-size: 0.88rem; line-height: 1.5; }
+.divs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; max-width: 28rem; }
+.prefix-row { display: grid; grid-template-columns: 5rem minmax(0, 10rem) auto; gap: 8px; align-items: center; }
+.prefix-row input { font-family: var(--font-mono); }
+.prefix-row .btn { justify-self: start; }
+.issue { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 10px; border-radius: 4px; background: var(--warn-bg); color: var(--warn); font-size: 0.88rem; }
+.ok-line { color: var(--south); font-size: 0.88rem; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-size: 0.88rem; max-width: calc(100% - 32px); opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+.toast.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+@media (max-width: 720px) {
+  .head { display: none; }
+  .row { grid-template-columns: 1.75rem max-content minmax(0, 1fr) 2rem; grid-template-areas: "idx acct acct clear" ". city city city" ". util div div"; row-gap: 6px; padding: 10px; align-items: center; }
+  .row .idx { grid-area: idx; padding-top: 0; } .row .acct { grid-area: acct; width: 100%; min-width: 11rem; } .row .clear { grid-area: clear; }
+  .row .city { grid-area: city; } .row .util { grid-area: util; padding-top: 0; } .row .div { grid-area: div; }
+  .row input { font-size: 16px; padding: 8px; }
+  .chip { margin-top: 0; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Utility Division Lookup</h1>
+      <p class="rules" id="rules"></p>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-lookup" aria-selected="true" aria-controls="view-lookup">Lookup</button>
+      <button class="tab" role="tab" id="tab-lists" aria-selected="false" aria-controls="view-lists">Lists</button>
+    </div>
+  </header>
+
+  <main id="view-lookup" role="tabpanel" aria-labelledby="tab-lookup" style="display:flex;flex-direction:column;gap:14px">
+    <div class="stats" id="stats"></div>
+    <div class="note" id="examples-note" hidden>
+      <span>Example rows are loaded. Replace them or clear them to start fresh.</span>
+      <button class="btn small" id="clear-examples">Clear examples</button>
+    </div>
+    <div class="toolbar">
+      <button class="btn primary" id="copy-div">Copy divisions</button>
+      <button class="btn" id="copy-table">Copy table</button>
+      <button class="btn" id="add-rows">Add 10 rows</button>
+      <span class="spacer"></span>
+      <button class="btn danger" id="clear-all">Clear all</button>
+    </div>
+    <div class="sheet" role="table" aria-label="Accounts">
+      <div class="head" role="row"><span></span><span>Account Number</span><span>City</span><span>Utility</span><span>Division Number</span><span></span></div>
+      <div id="rows"></div>
+    </div>
+    <p style="margin:0;color:var(--muted);font-size:0.85rem">Paste a two-column selection (account, city) from Excel into any cell and it fills down. “Copy divisions” returns one column in row order, ready to paste back into Excel.</p>
+  </main>
+
+  <main id="view-lists" role="tabpanel" aria-labelledby="tab-lists" hidden style="display:none;flex-direction:column;gap:14px">
+    <section class="panel">
+      <h2>Division numbers</h2>
+      <p>Gas accounts always get the Gas number. Electric accounts get North or South by city; North is checked first.</p>
+      <div class="divs">
+        <div class="field"><label for="div-gas">Gas</label><input id="div-gas" inputmode="numeric" maxlength="6"></div>
+        <div class="field"><label for="div-north">Electric North</label><input id="div-north" inputmode="numeric" maxlength="6"></div>
+        <div class="field"><label for="div-south">Electric South</label><input id="div-south" inputmode="numeric" maxlength="6"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Utility prefixes</h2>
+      <p>The first two digits of the account number set the utility.</p>
+      <div id="prefixes" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div><button class="btn small" id="add-prefix">Add prefix</button></div>
+    </section>
+
+    <section class="panel">
+      <h2>Coverage check</h2>
+      <div id="coverage" style="display:flex;flex-direction:column;gap:8px"></div>
+    </section>
+
+    <section class="panel">
+      <h2>City lists</h2>
+      <p>One city per line. Matching ignores capitals and extra spaces. The dropdown list only fills the suggestions in the City box; the North and South lists decide the division.</p>
+      <div class="cols">
+        <div class="field"><label for="list-north">North cities (<span id="count-north"></span>)</label><textarea id="list-north" spellcheck="false"></textarea></div>
+        <div class="field"><label for="list-south">South cities (<span id="count-south"></span>)</label><textarea id="list-south" spellcheck="false"></textarea></div>
+        <div class="field"><label for="list-all">City dropdown (<span id="count-all"></span>)</label><textarea id="list-all" spellcheck="false"></textarea></div>
+      </div>
+      <div><button class="btn danger" id="restore">Restore original lists</button></div>
+    </section>
+  </main>
+</div>
+<datalist id="cities"></datalist>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+  var DATA = {"north": ["Allston", "Auburndale", "Back Bay", "Back Bay Fens", "Beacon Hill - West End", "Bellingham", "Boston", "Brighton", "Brookline", "Canton", "Charlestown", "Chelsea", "Chestnut Hill", "Dedham", "Dorchester", "Dover", "E Boston", "Hyde Park", "Jamaica Plain", "Mattapan", "Medfield", "Medway", "Millis", "Milton", "Needham", "Norfolk", "North End", "Roslindale", "Roxbury", "S Boston", "South End", "Sharon", "W Roxbury", "Walpole", "Westwood", "Arlington", "Bedford", "Burlington", "Cambridge", "Carlisle", "Lexington", "Lincoln", "Newton", "Newton Ctr", "Newton Hld", "Newton L F", "Newtonville", "Somerville", "Stoneham", "W Newton", "Waban", "Waltham", "Watertown", "Weston", "Winchester", "Woburn", "Acton", "Ashland", "Framingham", "Holliston", "Hopkinton", "Maynard", "Natick", "Sherborn", "Sudbury", "Wayland"], "south": ["FRAMINGHAM", "BASS RIVER - BAS", "BOURNE - BOU", "BREWSTER - BRE", "CAUTAMET - CAT", "CENTERVILLE - CEN", "CHATHAM - CHA", "CHATHAMPORT - CHA", "COTUIT - COT", "CRAIGVILLE - CRA", "DENNIS - DEN", "DENNISPORT - DPO", "EASTHAM - EAS", "FALMOUTH - FAL", "FORESTDALE - FOR", "HARWICH - HAR", "HARWICHPORT - HPT", "HATCHVILLE - HAT", "HYANNIS - HYA", "HYANNISPORT - HPT", "MARSTON MILLS - MAM", "MASHPEE - MAS", "MEGANSETT - MEG", "MONUMENT BEACH - MOB", "ORLEANS - ORL", "OSTERVILLE - OST", "PLEASANT LAKE - PLL", "PLYMOUTH - PLY", "POCASSET - POC", "PROVINCETOWN - PRO", "SAGAMORE - SAG", "SANDWICH - SAN", "SANTUIT - SAT", "SILVER BEACH - SIB", "TEATICKET - TEA", "TRURO - TRU", "VINEYARD HAVEN - VIH", "WAREHAM-WAR", "WAQUOIT - WAQ", "WELLFLEET - WEL", "Wianno - WIA", "WOODS HOLE - FAL", "YARMOUTH - YAR", "YARMOUTHPORT - YPO", "VINEYARD", "AQUINNAH (VINEYARD) - AQU", "CHILMARK (VINEYARD) - CHI", "EDGARTOWN (VINEYARD) - EDG", "OAK BLUFFS (VINEYARD) - OAK", "N TISBURY - NTI", "W TISBURY", "NEW BEDFORD-NEB", "ACUSHNET-ACU", "ASSONET-ASS", "DARTMOUTH-DAR", "E FREETOWN-EFR", "FAIRHAVEN- FAI", "LAKEVILLE-LAK", "MATTAPOISETT-MPO", "NEW BEDFORD-NEB", "WESTPORT-WES"], "all": ["BARNSTABLE - BAR", "BASS RIVER - BAS", "BOURNE - BOU", "BREWSTER - BRE", "CAUTAMET - CAT", "CENTERVILLE - CEN", "CHATHAM - CHA", "CHATHAMPORT - CHA", "COTUIT - COT", "CRAIGVILLE - CRA", "DENNIS - DEN", "DENNISPORT - DPO", "EASTHAM - EAS", "FALMOUTH - FAL", "FORESTDALE - FOR", "HARWICH - HAR", "HARWICHPORT - HPT", "HATCHVILLE - HAT", "HYANNIS - HYA", "HYANNISPORT - HPT", "MARSTON MILLS - MAM", "MASHPEE - MAS", "MEGANSETT - MEG", "MONUMENT BEACH - MOB", "ORLEANS - ORL", "OSTERVILLE - OST", "PLEASANT LAKE - PLL", "PLYMOUTH - PLY", "POCASSET - POC", "PROVINCETOWN - PRO", "SAGAMORE - SAG", "SANDWICH - SAN", "SANTUIT - SAT", "SILVER BEACH - SIB", "TEATICKET - TEA", "TRURO - TRU", "VINEYARD HAVEN - VIH", "WAREHAM-WAR", "WAQUOIT - WAQ", "WELLFLEET - WEL", "Wianno - WIA", "WOODS HOLE - FAL", "YARMOUTH - YAR", "YARMOUTHPORT - YPO", "VINEYARD", "AQUINNAH (VINEYARD) - AQU", "CHILMARK (VINEYARD) - CHI", "EDGARTOWN (VINEYARD) - EDG", "OAK BLUFFS (VINEYARD) - OAK", "N TISBURY - NTI", "W TISBURY", "NEW BEDFORD-NEB", "ACUSHNET-ACU", "ASSONET-ASS", "DARTMOUTH-DAR", "E FREETOWN-EFR", "FAIRHAVEN- FAI", "LAKEVILLE-LAK", "MATTAPOISETT-MPO", "NEW BEDFORD-NEB", "WESTPORT-WES", "Allston", "Auburndale", "Back Bay", "Back Bay Fens", "Beacon Hill - West End", "Bellingham", "Boston", "Brighton", "Brookline", "Canton", "Charlestown", "Chelsea", "Chestnut Hill", "Dedham", "Dorchester", "Dover", "E Boston", "Hyde Park", "Jamaica Plain", "Mattapan", "Medfield", "Medway", "Millis", "Milton", "Needham", "Norfolk", "North End", "Roslindale", "Roxbury", "S Boston", "South End", "Sharon", "W Roxbury", "Walpole", "Westwood", "Arlington", "Bedford", "Burlington", "Cambridge", "Carlisle", "Lexington", "Lincoln", "Newton", "Newton Ctr", "Newton Hld", "Newton L F", "Newtonville", "Somerville", "Stoneham", "W Newton", "Waban", "Waltham", "Watertown", "Weston", "Winchester", "Woburn", "Acton", "Ashland", "Framingham", "Holliston", "Hopkinton", "Maynard", "Natick", "Sherborn", "Sudbury", "Wayland"]};
+  var STORE_KEY = "utilityDivision.v1";
+  var INITIAL_ROWS = 30;
+
+  function defaults() {
+    return {
+      prefixes: [{ prefix: "73", utility: "Gas" }, { prefix: "74", utility: "Electric" }],
+      div: { gas: "30", north: "80", south: "70" },
+      north: DATA.north.slice(), south: DATA.south.slice(), all: DATA.all.slice()
+    };
+  }
+  var EXAMPLES = [
+    { acct: "74016999505", city: "ORLEANS - ORL" },
+    { acct: "73048120377", city: "Boston" },
+    { acct: "74022310458", city: "Newton Ctr" },
+    { acct: "74031987654", city: "BARNSTABLE - BAR" }
+  ];
+
+  var S = defaults();
+  var rows = [];
+  var examples = true;
+  var idx = {};
+
+  /* ---------- storage ---------- */
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return false;
+      var d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.rows) || !d.S) return false;
+      var base = defaults();
+      S = {
+        prefixes: Array.isArray(d.S.prefixes) ? d.S.prefixes : base.prefixes,
+        div: Object.assign(base.div, d.S.div || {}),
+        north: Array.isArray(d.S.north) ? d.S.north : base.north,
+        south: Array.isArray(d.S.south) ? d.S.south : base.south,
+        all: Array.isArray(d.S.all) ? d.S.all : base.all
+      };
+      rows = d.rows.map(function (r) { return { acct: String(r.acct || ""), city: String(r.city || "") }; });
+      examples = !!d.examples;
+      return true;
+    } catch (e) { return false; }
+  }
+  var saveTimer = null;
+  function saveNow() {
+    clearTimeout(saveTimer); saveTimer = null;
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ rows: rows, S: S, examples: examples })); } catch (e) {}
+  }
+  function save() { clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 200); }
+  window.addEventListener("pagehide", function () { if (saveTimer) saveNow(); });
+  document.addEventListener("visibilitychange", function () { if (document.hidden && saveTimer) saveNow(); });
+
+  /* ---------- lookup logic ---------- */
+  function norm(s) { return String(s == null ? "" : s).replace(/ /g, " ").replace(/\s+/g, " ").trim().toLowerCase(); }
+  function buildIndex() {
+    idx.prefix = new Map();
+    S.prefixes.forEach(function (p) { var k = String(p.prefix).replace(/\s/g, ""); if (k) idx.prefix.set(k, p.utility); });
+    idx.north = new Set(S.north.map(norm).filter(Boolean));
+    idx.south = new Set(S.south.map(norm).filter(Boolean));
+  }
+  function compute(r) {
+    var acct = (r.acct || "").replace(/[\s-]/g, "");
+    var city = norm(r.city);
+    if (!acct && !city) return { state: "empty" };
+    if (!acct) return { state: "noacct", msg: "Enter an account number" };
+    if (acct.length < 2) return { state: "partial" };
+    var pre = acct.slice(0, 2);
+    var util = idx.prefix.get(pre);
+    if (!util) return { state: "badprefix", msg: "Prefix " + pre + " is not in the prefix list" };
+    if (util === "Gas") return { state: "ok", util: util, div: S.div.gas, kind: "gas" };
+    if (util === "Electric") {
+      if (!city) return { state: "needcity", util: util, msg: "Select a city" };
+      if (idx.north.has(city)) return { state: "ok", util: util, div: S.div.north, kind: "north" };
+      if (idx.south.has(city)) return { state: "ok", util: util, div: S.div.south, kind: "south" };
+      return { state: "unmapped", util: util, msg: "City is not in the North or South list" };
+    }
+    return { state: "ok", util: util, div: "", kind: "empty" };
+  }
+
+  /* ---------- DOM helpers ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  var toastTimer = null;
+  function toast(t) {
+    var n = $("toast"); n.textContent = t; n.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { n.classList.remove("show"); }, 1800);
+  }
+
+  /* ---------- rows ---------- */
+  var rowEls = [];
+  function createRow(i) {
+    var r = el("div", "row"); r.setAttribute("role", "row");
+    var n = el("span", "idx", String(i + 1));
+    var a = el("input", "acct"); a.type = "text"; a.inputMode = "numeric"; a.autocomplete = "off"; a.placeholder = "Account number";
+    a.id = "acct-" + i; a.setAttribute("aria-label", "Account number, row " + (i + 1)); a.value = rows[i].acct; a.dataset.col = "0";
+    var c = el("input", "city"); c.type = "text"; c.autocomplete = "off"; c.placeholder = "City"; c.setAttribute("list", "cities");
+    c.id = "city-" + i; c.setAttribute("aria-label", "City, row " + (i + 1)); c.value = rows[i].city; c.dataset.col = "1";
+    var u = el("div", "util"); var d = el("div", "div");
+    var x = el("button", "clear", "×"); x.type = "button"; x.setAttribute("aria-label", "Clear row " + (i + 1)); x.title = "Clear row";
+    r.append(n, a, c, u, d, x);
+    var refs = { row: r, acct: a, city: c, util: u, div: d };
+    rowEls[i] = refs;
+    [a, c].forEach(function (inp) {
+      inp.addEventListener("input", function () {
+        rows[i][inp.dataset.col === "0" ? "acct" : "city"] = inp.value;
+        updateRow(i); summarize(); save();
+        if (i === rows.length - 1 && inp.value) { addRows(5); }
+      });
+      inp.addEventListener("paste", function (ev) { onPaste(ev, i, Number(inp.dataset.col)); });
+      inp.addEventListener("keydown", function (ev) {
+        if (ev.key !== "Enter") return;
+        ev.preventDefault();
+        var next = inp === a ? c : (rowEls[i + 1] && rowEls[i + 1].acct);
+        if (next) next.focus();
+      });
+    });
+    x.addEventListener("click", function () {
+      rows[i] = { acct: "", city: "" }; a.value = ""; c.value = ""; updateRow(i); summarize(); save(); a.focus();
+    });
+    updateRow(i);
+    return r;
+  }
+
+  function updateRow(i) {
+    var refs = rowEls[i]; var res = compute(rows[i]);
+    refs.util.textContent = ""; refs.div.textContent = "";
+    if (res.util) refs.util.append(el("span", "pill " + res.util.toLowerCase(), res.util));
+    else if (res.state === "badprefix") refs.util.append(el("span", "pill none", "Unknown"));
+    if (res.state === "ok") {
+      refs.div.append(el("span", "chip " + res.kind, res.div || "—"));
+    } else if (res.state !== "empty" && res.state !== "partial") {
+      refs.div.append(el("span", "chip warn", "—"));
+      var m = el("div", "msg" + (res.state === "needcity" || res.state === "noacct" ? " soft" : ""));
+      m.append(el("span", null, res.msg));
+      if (res.state === "unmapped") {
+        var cityText = rows[i].city.replace(/\s+/g, " ").trim();
+        [["north", "Add to North"], ["south", "Add to South"]].forEach(function (p) {
+          var b = el("button", "btn small", p[1]); b.type = "button";
+          b.addEventListener("click", function () { addCityTo(p[0], cityText); });
+          m.append(b);
+        });
+      }
+      refs.div.append(m);
+    } else {
+      refs.div.append(el("span", "chip empty", ""));
+    }
+  }
+  function updateAllRows() { for (var i = 0; i < rows.length; i++) updateRow(i); summarize(); }
+
+  function addRows(n) {
+    var start = rows.length;
+    for (var k = 0; k < n; k++) rows.push({ acct: "", city: "" });
+    var host = $("rows");
+    for (var i = start; i < rows.length; i++) host.append(createRow(i));
+    save();
+  }
+  function renderRows() {
+    var host = $("rows"); host.textContent = ""; rowEls = [];
+    for (var i = 0; i < rows.length; i++) host.append(createRow(i));
+    summarize();
+  }
+
+  function addCityTo(which, city) {
+    if (!city) return;
+    S[which].push(city);
+    var n = norm(city);
+    if (!S.all.some(function (c) { return norm(c) === n; })) S.all.push(city);
+    afterListsChanged(true);
+    toast("Added " + city + " to " + (which === "north" ? "North" : "South"));
+  }
+
+  /* ---------- paste from Excel ---------- */
+  function onPaste(ev, rowIndex, col) {
+    var text = (ev.clipboardData || window.clipboardData).getData("text");
+    if (!/[\t\r\n]/.test(text.replace(/[\r\n]+$/, ""))) return; // single value: let the browser paste normally
+    ev.preventDefault();
+    var lines = text.replace(/\r/g, "").replace(/\n+$/, "").split("\n");
+    var need = rowIndex + lines.length - rows.length;
+    if (need > 0) { for (var k = 0; k < need; k++) rows.push({ acct: "", city: "" }); }
+    lines.forEach(function (line, li) {
+      var cells = line.split("\t");
+      cells.slice(0, 2 - col).forEach(function (v, ci) {
+        rows[rowIndex + li][col + ci === 0 ? "acct" : "city"] = v.trim();
+      });
+    });
+    if (rows[rows.length - 1].acct || rows[rows.length - 1].city) { for (var j = 0; j < 5; j++) rows.push({ acct: "", city: "" }); }
+    examples = false; $("examples-note").hidden = true;
+    renderRows(); save();
+    toast("Pasted " + lines.length + (lines.length === 1 ? " row" : " rows"));
+  }
+
+  /* ---------- summary and rules line ---------- */
+  function summarize() {
+    var c = { gas: 0, north: 0, south: 0, warn: 0 };
+    rows.forEach(function (r) {
+      var res = compute(r);
+      if (res.state === "ok") { if (c[res.kind] != null) c[res.kind]++; }
+      else if (res.state === "unmapped" || res.state === "badprefix") c.warn++;
+    });
+    var box = $("stats"); box.textContent = "";
+    [["gas", "Gas · " + S.div.gas, c.gas], ["north", "Electric North · " + S.div.north, c.north],
+     ["south", "Electric South · " + S.div.south, c.south], ["warn", "Needs attention", c.warn]].forEach(function (s) {
+      var d = el("div", "stat " + s[0] + (s[0] === "warn" && s[2] ? " on" : ""));
+      d.append(el("span", "n", String(s[2])), el("span", "l", s[1]));
+      box.append(d);
+    });
+  }
+  function renderRules() {
+    var host = $("rules"); host.textContent = "";
+    S.prefixes.forEach(function (p) {
+      var s = el("span");
+      var t = p.utility === "Gas" ? "Gas → " + S.div.gas : "Electric → " + S.div.north + " North / " + S.div.south + " South";
+      s.append(document.createTextNode("Prefix "), el("b", null, p.prefix), document.createTextNode(" " + t));
+      host.append(s);
+    });
+  }
+
+  /* ---------- copy ---------- */
+  function lastUsed() {
+    for (var i = rows.length - 1; i >= 0; i--) if (rows[i].acct.trim() || rows[i].city.trim()) return i;
+    return -1;
+  }
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea"); ta.value = text; ta.style.cssText = "position:fixed;opacity:0;top:0";
+    document.body.appendChild(ta); ta.select(); var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    ta.remove(); return ok;
+  }
+  function copyText(text, label) {
+    var done = function (ok) { toast(ok ? label + " copied" : "Copy blocked by the browser"); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(fallbackCopy(text)); });
+    } else done(fallbackCopy(text));
+  }
+  function divText(r) { var res = compute(r); return res.state === "ok" ? String(res.div) : ""; }
+  $("copy-div").addEventListener("click", function () {
+    var n = lastUsed(); if (n < 0) { toast("Nothing to copy yet"); return; }
+    copyText(rows.slice(0, n + 1).map(divText).join("\n"), "Divisions");
+  });
+  $("copy-table").addEventListener("click", function () {
+    var n = lastUsed(); if (n < 0) { toast("Nothing to copy yet"); return; }
+    var out = ["Account Number\tCity\tUtility\tDivision Number"];
+    rows.slice(0, n + 1).forEach(function (r) {
+      var res = compute(r);
+      out.push([r.acct.trim(), r.city.trim(), res.util || "", divText(r)].join("\t"));
+    });
+    copyText(out.join("\n"), "Table");
+  });
+
+  /* ---------- toolbar ---------- */
+  $("add-rows").addEventListener("click", function () { addRows(10); });
+  $("clear-examples").addEventListener("click", function () {
+    rows = []; for (var i = 0; i < INITIAL_ROWS; i++) rows.push({ acct: "", city: "" });
+    examples = false; $("examples-note").hidden = true; renderRows(); save();
+  });
+  var armTimer = null;
+  $("clear-all").addEventListener("click", function () {
+    var b = $("clear-all");
+    if (!b.classList.contains("armed")) {
+      b.classList.add("armed"); b.textContent = "Tap again to clear all";
+      armTimer = setTimeout(disarm, 3000); return;
+    }
+    disarm();
+    rows = []; for (var i = 0; i < INITIAL_ROWS; i++) rows.push({ acct: "", city: "" });
+    examples = false; $("examples-note").hidden = true; renderRows(); save(); toast("Cleared");
+  });
+  function disarm() { clearTimeout(armTimer); var b = $("clear-all"); b.classList.remove("armed"); b.textContent = "Clear all"; }
+
+  /* ---------- tabs ---------- */
+  function showTab(name) {
+    var lookup = name === "lookup";
+    $("view-lookup").style.display = lookup ? "flex" : "none"; $("view-lookup").hidden = !lookup;
+    $("view-lists").style.display = lookup ? "none" : "flex"; $("view-lists").hidden = lookup;
+    $("tab-lookup").setAttribute("aria-selected", String(lookup));
+    $("tab-lists").setAttribute("aria-selected", String(!lookup));
+    if (!lookup) renderCoverage();
+  }
+  $("tab-lookup").addEventListener("click", function () { showTab("lookup"); });
+  $("tab-lists").addEventListener("click", function () { showTab("lists"); });
+
+  /* ---------- lists view ---------- */
+  function lines(v) { return v.split("\n").map(function (s) { return s.replace(/ /g, " ").trim(); }).filter(Boolean); }
+  function fillDatalist() {
+    var dl = $("cities"); dl.textContent = "";
+    S.all.forEach(function (c) { var o = document.createElement("option"); o.value = c; dl.append(o); });
+  }
+  function syncListFields() {
+    $("list-north").value = S.north.join("\n"); $("list-south").value = S.south.join("\n"); $("list-all").value = S.all.join("\n");
+    $("div-gas").value = S.div.gas; $("div-north").value = S.div.north; $("div-south").value = S.div.south;
+    renderPrefixes(); updateCounts();
+  }
+  function updateCounts() {
+    $("count-north").textContent = S.north.length; $("count-south").textContent = S.south.length; $("count-all").textContent = S.all.length;
+  }
+  function afterListsChanged(resync) {
+    buildIndex(); fillDatalist(); renderRules(); updateAllRows(); updateCounts(); renderCoverage();
+    if (resync) syncListFields();
+    save();
+  }
+  [["list-north", "north"], ["list-south", "south"], ["list-all", "all"]].forEach(function (p) {
+    $(p[0]).addEventListener("input", function () { S[p[1]] = lines($(p[0]).value); afterListsChanged(false); });
+  });
+  [["div-gas", "gas"], ["div-north", "north"], ["div-south", "south"]].forEach(function (p) {
+    $(p[0]).addEventListener("input", function () { S.div[p[1]] = $(p[0]).value.trim(); afterListsChanged(false); });
+  });
+
+  function renderPrefixes() {
+    var host = $("prefixes"); host.textContent = "";
+    S.prefixes.forEach(function (p, i) {
+      var r = el("div", "prefix-row");
+      var inp = el("input"); inp.type = "text"; inp.maxLength = 2; inp.inputMode = "numeric"; inp.value = p.prefix; inp.id = "prefix-" + i; inp.setAttribute("aria-label", "Prefix " + (i + 1));
+      var sel = el("select"); sel.id = "prefix-util-" + i; sel.setAttribute("aria-label", "Utility for prefix " + (i + 1));
+      ["Gas", "Electric"].forEach(function (u) { var o = el("option", null, u); o.value = u; if (u === p.utility) o.selected = true; sel.append(o); });
+      var del = el("button", "btn small", "Remove"); del.type = "button";
+      inp.addEventListener("input", function () { p.prefix = inp.value.trim(); afterListsChanged(false); });
+      sel.addEventListener("change", function () { p.utility = sel.value; afterListsChanged(false); });
+      del.addEventListener("click", function () { S.prefixes.splice(i, 1); renderPrefixes(); afterListsChanged(false); });
+      r.append(inp, sel, del); host.append(r);
+    });
+  }
+  $("add-prefix").addEventListener("click", function () {
+    S.prefixes.push({ prefix: "", utility: "Gas" }); renderPrefixes(); save();
+    var last = $("prefix-" + (S.prefixes.length - 1)); if (last) last.focus();
+  });
+
+  function renderCoverage() {
+    var host = $("coverage"); host.textContent = "";
+    var seen = new Set();
+    var unmapped = S.all.filter(function (c) {
+      var n = norm(c); if (!n || idx.north.has(n) || idx.south.has(n) || seen.has(n)) return false; seen.add(n); return true;
+    });
+    var overlap = S.north.filter(function (c) { return idx.south.has(norm(c)); });
+    unmapped.forEach(function (c) {
+      var d = el("div", "issue");
+      d.append(el("span", null, c + " is in the dropdown but in neither list. Electric accounts there get no division."));
+      [["north", "Add to North"], ["south", "Add to South"]].forEach(function (p) {
+        var b = el("button", "btn small", p[1]); b.type = "button";
+        b.addEventListener("click", function () { addCityTo(p[0], c); });
+        d.append(b);
+      });
+      host.append(d);
+    });
+    overlap.forEach(function (c) {
+      host.append(el("div", "issue", c + " is in both North and South. North wins, so it gets " + S.div.north + "."));
+    });
+    if (!unmapped.length && !overlap.length) host.append(el("div", "ok-line", "Every dropdown city maps to a division, and no city is in both lists."));
+  }
+  var restoreTimer = null;
+  $("restore").addEventListener("click", function () {
+    var b = $("restore");
+    if (!b.dataset.armed) {
+      b.dataset.armed = "1"; b.classList.add("armed"); b.textContent = "Tap again to restore";
+      restoreTimer = setTimeout(function () { delete b.dataset.armed; b.classList.remove("armed"); b.textContent = "Restore original lists"; }, 3000);
+      return;
+    }
+    clearTimeout(restoreTimer); delete b.dataset.armed; b.classList.remove("armed"); b.textContent = "Restore original lists";
+    S = defaults(); afterListsChanged(true); toast("Original lists restored");
+  });
+
+  /* ---------- boot ---------- */
+  if (!load()) {
+    rows = EXAMPLES.map(function (e) { return { acct: e.acct, city: e.city }; });
+    examples = true;
+  }
+  while (rows.length < INITIAL_ROWS) rows.push({ acct: "", city: "" });
+  buildIndex(); fillDatalist(); renderRules(); syncListFields(); renderRows();
+  $("examples-note").hidden = !examples;
+  $("view-lists").style.display = "none";
+})();
+</script>
+</body>
+</html>
