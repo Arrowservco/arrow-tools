@@ -1,5 +1,11 @@
 # Utility Division Lookup
 
+Two pages, both single-file HTML:
+
+- `lookup.html`: one-screen finder. Enter an account number and get the utility and division. Electric
+  accounts also need a city. Nothing is stored.
+- `index.html`: spreadsheet-style table for many accounts, with editable lists (saved in the browser).
+
 Single-file HTML replacement for `Final Utility Division Template - Update.xlsx`.
 Open `index.html` in any browser. No build step, no server, no dependencies.
 
