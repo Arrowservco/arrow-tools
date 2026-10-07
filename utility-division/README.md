@@ -4,6 +4,10 @@ Two pages, both single-file HTML:
 
 - `lookup.html`: one-screen finder. Enter an account number and get the utility and division. Electric
   accounts also need a city. Nothing is stored.
+- `eversource-division-finder.html`: the same one-screen finder with Eversource branding. Fully
+  self-contained (no fonts, scripts or network requests), so it works offline from a single file.
+  Brand colors are approximations; change `--brand` and `--brand-accent` at the top of the file to match
+  the brand guide.
 - `index.html`: spreadsheet-style table for many accounts, with editable lists (saved in the browser).
 
 Single-file HTML replacement for `Final Utility Division Template - Update.xlsx`.

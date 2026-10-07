@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Eversource Account Division Finder</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2300457c'/%3E%3Cpath d='M9 8h14v3.5H13v3h9v3.5h-9v3h10V24H9z' fill='%23fff'/%3E%3Crect x='9' y='26' width='14' height='2' fill='%2378be20'/%3E%3C/svg%3E">
+<style>
+/* Layout: brand bar across the top, then one centered column. Inputs, then one large result panel. Nothing is stored.
+   Brand colors below are approximations. Replace --brand and --brand-accent with the values from the official brand guide. */
+:root {
+  --bg: #f1f4f7;
+  --surface: #ffffff;
+  --surface-2: #f6f8fa;
+  --fg: #14202b;
+  --muted: #566877;
+  --line: #d6dee5;
+  --brand: #00457c;       /* brand bar and primary buttons */
+  --brand-ink: #ffffff;   /* text on the brand bar */
+  --brand-accent: #78be20; /* rule under the brand bar */
+  --accent: #00457c;
+  --accent-fg: #ffffff;
+  --gas: #8a5200;       --gas-bg: #fcefd3;
+  --north: #1b4d8f;     --north-bg: #e2ecf9;
+  --south: #0c6656;     --south-bg: #dcf2ec;
+  --warn: #a3262a;      --warn-bg: #fbe3e3;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e161d; --surface: #16212a; --surface-2: #1c2933; --fg: #e5ecf1; --muted: #93a5b3; --line: #2a3945;
+    --accent: #7fb2e5; --accent-fg: #0e161d; --brand: #0b3b66;
+    --gas: #f0b95a; --gas-bg: #3a2a0c;
+    --north: #93bcf2; --north-bg: #172d4a;
+    --south: #72d6c2; --south-bg: #0f3a32;
+    --warn: #f28f92; --warn-bg: #3d1a1c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e161d; --surface: #16212a; --surface-2: #1c2933; --fg: #e5ecf1; --muted: #93a5b3; --line: #2a3945;
+  --accent: #7fb2e5; --accent-fg: #0e161d; --brand: #0b3b66;
+  --gas: #f0b95a; --gas-bg: #3a2a0c;
+  --north: #93bcf2; --north-bg: #172d4a;
+  --south: #72d6c2; --south-bg: #0f3a32;
+  --warn: #f28f92; --warn-bg: #3d1a1c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.45 var(--font-sans); margin: 0; }
+.bar { background: var(--brand); color: var(--brand-ink); border-bottom: 4px solid var(--brand-accent); padding-inline: 16px; padding-block: 14px; }
+.bar-in { max-width: 30rem; margin-inline: auto; display: flex; flex-direction: column; gap: 2px; }
+.wordmark { font-size: 1.35rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; line-height: 1.1; }
+.bar .product { font-size: 0.9rem; opacity: 0.88; }
+.app { max-width: 30rem; margin-inline: auto; padding-inline: 16px; padding-block: 18px 24px; display: flex; flex-direction: column; gap: 14px; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+h1 { margin: 0; font: inherit; }
+.rules { margin: 0; color: var(--muted); font-size: 0.85rem; display: flex; flex-wrap: wrap; gap: 2px 14px; }
+.rules b { font-family: var(--font-mono); font-weight: 600; color: var(--fg); }
+
+.inputs { display: flex; flex-direction: column; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.field label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; gap: 8px; }
+.field label .hint { text-transform: none; letter-spacing: 0; }
+.field input { width: 100%; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font-size: 16px; }
+#acct { font-family: var(--font-mono); font-size: 1.5rem; font-weight: 600; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; padding-block: 12px; }
+#city:disabled { background: var(--surface-2); color: var(--muted); }
+
+.result { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.result.gas { border-color: var(--gas); } .result.north { border-color: var(--north); } .result.south { border-color: var(--south); } .result.warn { border-color: var(--warn); }
+.top { display: flex; align-items: center; gap: 8px; min-height: 1.7rem; }
+.pill { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: 0.85rem; font-weight: 600; }
+.pill.gas { color: var(--gas); background: var(--gas-bg); } .pill.electric { color: var(--north); background: var(--north-bg); } .pill.none { color: var(--muted); font-weight: 400; }
+.tag { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+.big { font: 600 clamp(4.5rem, 24vw, 7rem)/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--muted); }
+.result.gas .big { color: var(--gas); } .result.north .big { color: var(--north); } .result.south .big { color: var(--south); } .result.warn .big { color: var(--warn); }
+.why { margin: 0; color: var(--muted); font-size: 0.9rem; min-height: 2.7em; max-width: 26rem; }
+.result.warn .why { color: var(--warn); }
+.actions { display: flex; gap: 8px; width: 100%; }
+.btn { flex: 1; border: 1px solid var(--line); background: var(--surface-2); border-radius: 6px; padding: 10px 12px; cursor: pointer; font-weight: 500; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.foot { margin: 0; color: var(--muted); font-size: 0.8rem; text-align: center; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-size: 0.88rem; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+.toast.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<header class="bar"><div class="bar-in"><h1><span class="wordmark">Eversource</span></h1><span class="product">Account Division Finder</span></div></header>
+<div class="app">
+  <p class="rules" id="rules"></p>
+
+  <form class="inputs" id="form" autocomplete="off">
+    <div class="field">
+      <label for="acct">Account number</label>
+      <input id="acct" type="text" inputmode="numeric" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="e.g. 74016999505" autofocus>
+    </div>
+    <div class="field">
+      <label for="city">City <span class="hint" id="city-hint">Electric accounts only</span></label>
+      <input id="city" type="text" list="cities" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Start typing a city" disabled>
+    </div>
+  </form>
+
+  <section class="result" id="result" aria-live="polite">
+    <div class="top"><span class="pill none" id="util">Utility</span><span class="tag" id="tag"></span></div>
+    <div class="label">Division number</div>
+    <div class="big" id="division">—</div>
+    <p class="why" id="why"></p>
+    <div class="actions">
+      <button class="btn primary" type="button" id="copy" disabled>Copy division</button>
+      <button class="btn" type="button" id="clear">Clear</button>
+    </div>
+  </section>
+  <p class="foot">Nothing you enter is saved or sent anywhere.</p>
+</div>
+<datalist id="cities"></datalist>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+  var DATA = {"north": ["Allston", "Auburndale", "Back Bay", "Back Bay Fens", "Beacon Hill - West End", "Bellingham", "Boston", "Brighton", "Brookline", "Canton", "Charlestown", "Chelsea", "Chestnut Hill", "Dedham", "Dorchester", "Dover", "E Boston", "Hyde Park", "Jamaica Plain", "Mattapan", "Medfield", "Medway", "Millis", "Milton", "Needham", "Norfolk", "North End", "Roslindale", "Roxbury", "S Boston", "South End", "Sharon", "W Roxbury", "Walpole", "Westwood", "Arlington", "Bedford", "Burlington", "Cambridge", "Carlisle", "Lexington", "Lincoln", "Newton", "Newton Ctr", "Newton Hld", "Newton L F", "Newtonville", "Somerville", "Stoneham", "W Newton", "Waban", "Waltham", "Watertown", "Weston", "Winchester", "Woburn", "Acton", "Ashland", "Framingham", "Holliston", "Hopkinton", "Maynard", "Natick", "Sherborn", "Sudbury", "Wayland"], "south": ["FRAMINGHAM", "BARNSTABLE - BAR", "BASS RIVER - BAS", "BOURNE - BOU", "BREWSTER - BRE", "CAUTAMET - CAT", "CENTERVILLE - CEN", "CHATHAM - CHA", "CHATHAMPORT - CHA", "COTUIT - COT", "CRAIGVILLE - CRA", "DENNIS - DEN", "DENNISPORT - DPO", "EASTHAM - EAS", "FALMOUTH - FAL", "FORESTDALE - FOR", "HARWICH - HAR", "HARWICHPORT - HPT", "HATCHVILLE - HAT", "HYANNIS - HYA", "HYANNISPORT - HPT", "MARSTON MILLS - MAM", "MASHPEE - MAS", "MEGANSETT - MEG", "MONUMENT BEACH - MOB", "ORLEANS - ORL", "OSTERVILLE - OST", "PLEASANT LAKE - PLL", "PLYMOUTH - PLY", "POCASSET - POC", "PROVINCETOWN - PRO", "SAGAMORE - SAG", "SANDWICH - SAN", "SANTUIT - SAT", "SILVER BEACH - SIB", "TEATICKET - TEA", "TRURO - TRU", "VINEYARD HAVEN - VIH", "WAREHAM-WAR", "WAQUOIT - WAQ", "WELLFLEET - WEL", "Wianno - WIA", "WOODS HOLE - FAL", "YARMOUTH - YAR", "YARMOUTHPORT - YPO", "VINEYARD", "AQUINNAH (VINEYARD) - AQU", "CHILMARK (VINEYARD) - CHI", "EDGARTOWN (VINEYARD) - EDG", "OAK BLUFFS (VINEYARD) - OAK", "N TISBURY - NTI", "W TISBURY", "NEW BEDFORD-NEB", "ACUSHNET-ACU", "ASSONET-ASS", "DARTMOUTH-DAR", "E FREETOWN-EFR", "FAIRHAVEN- FAI", "LAKEVILLE-LAK", "MATTAPOISETT-MPO", "NEW BEDFORD-NEB", "WESTPORT-WES"], "all": ["BARNSTABLE - BAR", "BASS RIVER - BAS", "BOURNE - BOU", "BREWSTER - BRE", "CAUTAMET - CAT", "CENTERVILLE - CEN", "CHATHAM - CHA", "CHATHAMPORT - CHA", "COTUIT - COT", "CRAIGVILLE - CRA", "DENNIS - DEN", "DENNISPORT - DPO", "EASTHAM - EAS", "FALMOUTH - FAL", "FORESTDALE - FOR", "HARWICH - HAR", "HARWICHPORT - HPT", "HATCHVILLE - HAT", "HYANNIS - HYA", "HYANNISPORT - HPT", "MARSTON MILLS - MAM", "MASHPEE - MAS", "MEGANSETT - MEG", "MONUMENT BEACH - MOB", "ORLEANS - ORL", "OSTERVILLE - OST", "PLEASANT LAKE - PLL", "PLYMOUTH - PLY", "POCASSET - POC", "PROVINCETOWN - PRO", "SAGAMORE - SAG", "SANDWICH - SAN", "SANTUIT - SAT", "SILVER BEACH - SIB", "TEATICKET - TEA", "TRURO - TRU", "VINEYARD HAVEN - VIH", "WAREHAM-WAR", "WAQUOIT - WAQ", "WELLFLEET - WEL", "Wianno - WIA", "WOODS HOLE - FAL", "YARMOUTH - YAR", "YARMOUTHPORT - YPO", "VINEYARD", "AQUINNAH (VINEYARD) - AQU", "CHILMARK (VINEYARD) - CHI", "EDGARTOWN (VINEYARD) - EDG", "OAK BLUFFS (VINEYARD) - OAK", "N TISBURY - NTI", "W TISBURY", "NEW BEDFORD-NEB", "ACUSHNET-ACU", "ASSONET-ASS", "DARTMOUTH-DAR", "E FREETOWN-EFR", "FAIRHAVEN- FAI", "LAKEVILLE-LAK", "MATTAPOISETT-MPO", "NEW BEDFORD-NEB", "WESTPORT-WES", "Allston", "Auburndale", "Back Bay", "Back Bay Fens", "Beacon Hill - West End", "Bellingham", "Boston", "Brighton", "Brookline", "Canton", "Charlestown", "Chelsea", "Chestnut Hill", "Dedham", "Dorchester", "Dover", "E Boston", "Hyde Park", "Jamaica Plain", "Mattapan", "Medfield", "Medway", "Millis", "Milton", "Needham", "Norfolk", "North End", "Roslindale", "Roxbury", "S Boston", "South End", "Sharon", "W Roxbury", "Walpole", "Westwood", "Arlington", "Bedford", "Burlington", "Cambridge", "Carlisle", "Lexington", "Lincoln", "Newton", "Newton Ctr", "Newton Hld", "Newton L F", "Newtonville", "Somerville", "Stoneham", "W Newton", "Waban", "Waltham", "Watertown", "Weston", "Winchester", "Woburn", "Acton", "Ashland", "Framingham", "Holliston", "Hopkinton", "Maynard", "Natick", "Sherborn", "Sudbury", "Wayland"]};
+  var DIV = { gas: "30", north: "80", south: "70" };
+  var PREFIXES = { "73": "Gas", "74": "Electric" };
+
+  function norm(s) { return String(s == null ? "" : s).replace(/ /g, " ").replace(/\s+/g, " ").trim().toLowerCase(); }
+  var north = new Set(DATA.north.map(norm)), south = new Set(DATA.south.map(norm));
+
+  // Same rules as the workbook: Gas is always 30; Electric is 80 for North cities, 70 for South cities (North first).
+  function compute(acctRaw, cityRaw) {
+    var acct = acctRaw.replace(/[\s-]/g, ""), city = norm(cityRaw);
+    if (!acct) return { state: "empty" };
+    if (acct.length < 2) return { state: "partial" };
+    var pre = acct.slice(0, 2), util = PREFIXES[pre];
+    if (!util) return { state: "badprefix", pre: pre };
+    if (util === "Gas") return { state: "ok", util: util, div: DIV.gas, kind: "gas", why: "Prefix " + pre + " is Gas. Gas accounts are always division " + DIV.gas + "." };
+    if (!city) return { state: "needcity", util: util };
+    if (north.has(city)) return { state: "ok", util: util, div: DIV.north, kind: "north", why: "Prefix " + pre + " is Electric. " + cityRaw.trim() + " is in the North list." };
+    if (south.has(city)) return { state: "ok", util: util, div: DIV.south, kind: "south", why: "Prefix " + pre + " is Electric. " + cityRaw.trim() + " is in the South list." };
+    return { state: "unmapped", util: util };
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var acct = $("acct"), city = $("city"), result = $("result"), copyBtn = $("copy");
+  var current = null, toastTimer = null;
+
+  function toast(t) {
+    var n = $("toast"); n.textContent = t; n.classList.add("show");
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { n.classList.remove("show"); }, 1600);
+  }
+
+  function render() {
+    var r = compute(acct.value, city.value);
+    current = r;
+    var isElectric = r.util === "Electric";
+    city.disabled = !isElectric;
+    $("city-hint").textContent = r.util === "Gas" ? "Not needed for Gas" : "Electric accounts only";
+
+    var pill = $("util");
+    pill.className = "pill " + (r.util ? r.util.toLowerCase() : "none");
+    pill.textContent = r.util || "Utility";
+    var kind = r.kind || "", warn = r.state === "unmapped" || r.state === "badprefix";
+    result.className = "result" + (kind ? " " + kind : "") + (warn ? " warn" : "");
+    $("tag").textContent = kind === "north" ? "Electric North" : kind === "south" ? "Electric South" : "";
+
+    var big = "—", why = "Enter an account number to see its utility and division.";
+    if (r.state === "partial") why = "Keep typing. The first two digits set the utility.";
+    else if (r.state === "badprefix") why = "Prefix " + r.pre + " is not Gas (73) or Electric (74). Check the account number.";
+    else if (r.state === "needcity") why = "Electric account. Enter the city to get " + DIV.north + " or " + DIV.south + ".";
+    else if (r.state === "unmapped") why = "“" + city.value.trim() + "” is not in the North or South list. Pick a city from the suggestions.";
+    else if (r.state === "ok") { big = r.div; why = r.why; }
+    $("division").textContent = big;
+    $("why").textContent = why;
+    copyBtn.disabled = r.state !== "ok";
+  }
+
+  // The city belongs to one account. Clear it whenever the account number changes so it never carries over.
+  acct.addEventListener("input", function () { city.value = ""; render(); });
+  city.addEventListener("input", render);
+  acct.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); if (!city.disabled) city.focus(); } });
+  city.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); city.blur(); } });
+  $("form").addEventListener("submit", function (e) { e.preventDefault(); });
+
+  function clearAll() { acct.value = ""; city.value = ""; render(); acct.focus(); }
+  $("clear").addEventListener("click", clearAll);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape") clearAll(); });
+
+  function fallbackCopy(text) {
+    var ta = document.createElement("textarea"); ta.value = text; ta.style.cssText = "position:fixed;opacity:0;top:0";
+    document.body.appendChild(ta); ta.select(); var ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    ta.remove(); return ok;
+  }
+  copyBtn.addEventListener("click", function () {
+    if (!current || current.state !== "ok") return;
+    var text = current.div, done = function (ok) { toast(ok ? "Copied " + text : "Copy blocked by the browser"); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(fallbackCopy(text)); });
+    else done(fallbackCopy(text));
+  });
+
+  // City suggestions and the rules line
+  var dl = $("cities");
+  DATA.all.forEach(function (c) { var o = document.createElement("option"); o.value = c; dl.append(o); });
+  var rules = $("rules");
+  [["73", "Gas → " + DIV.gas], ["74", "Electric → " + DIV.north + " North / " + DIV.south + " South"]].forEach(function (p) {
+    var s = document.createElement("span"), b = document.createElement("b"); b.textContent = p[0];
+    s.append(document.createTextNode("Prefix "), b, document.createTextNode(" " + p[1])); rules.append(s);
+  });
+  render();
+})();
+</script>
+</body>
+</html>
