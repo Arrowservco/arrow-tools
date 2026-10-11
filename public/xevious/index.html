@@ -70,6 +70,9 @@ button:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
 .keys{display:none!important}
 .hiline{margin:0;font:400 12px var(--mono);letter-spacing:.22em;color:var(--amber)}
 @media (hover:hover) and (pointer:fine){.touch{display:none!important}.keys{display:contents!important}.bomb{display:none}}
+.pad{display:none!important}
+body.has-pad .pad{display:contents!important}
+body.has-pad .touch,body.has-pad .keys{display:none!important}
 @media (prefers-reduced-motion:reduce){.start,.bomb.lock{animation:none}}
 </style>
 
@@ -93,6 +96,8 @@ button:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
       <dl class="legend">
         <div class="touch"><dt>DRAG</dt><dd>anywhere to fly</dd></div>
         <div class="touch"><dt>BOMB</dt><dd>button, or tap a 2nd finger</dd></div>
+        <div class="pad"><dt>STICK / D-PAD</dt><dd>to fly</dd></div>
+        <div class="pad"><dt>A / RT</dt><dd>drop a bomb · START pauses</dd></div>
         <div class="keys"><dt>ARROWS</dt><dd>or WASD to fly</dd></div>
         <div class="keys"><dt>X / SHIFT</dt><dd>drop a bomb · P pauses</dd></div>
         <div><dt>ZAPPER</dt><dd>fires on its own, air only</dd></div>
@@ -229,7 +234,12 @@ const sfx = {
   reveal: () => [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, .12, .06, i * .07)),
   extend: () => [784, 988, 1175, 1568].forEach((f, i) => tone("square", f, f, .1, .045, i * .09)),
 };
-const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+let activePad = null;
+const buzz = ms => {
+  try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {}
+  const dur = Array.isArray(ms) ? ms.reduce((a, b) => a + b, 0) : ms;
+  try { const va = activePad && activePad.vibrationActuator; if (va && va.playEffect) va.playEffect("dual-rumble", { duration: dur, strongMagnitude: Math.min(1, dur / 200), weakMagnitude: .6 }).catch(() => {}); } catch (e) {}
+};
 
 // ---------- state ----------
 let state = "title", resumeState = "play";
@@ -342,6 +352,34 @@ bombBtn.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropaga
 bombBtn.addEventListener("click", e => { if (e.detail === 0) dropBomb(); });
 document.addEventListener("contextmenu", e => e.preventDefault());
 
+// gamepad (standard mapping): stick / d-pad fly, A B X Y RB RT bomb, START pauses, A starts
+let padPrev = [], padX = 0, padY = 0, overAt = 0;
+const PAD_DZ = .2;
+function pollPad() {
+  padX = padY = 0;
+  let pads = [];
+  try { pads = navigator.getGamepads ? navigator.getGamepads() : []; } catch (e) { return; }
+  const p = Array.from(pads || []).find(g => g && g.connected);
+  activePad = p || null;
+  if (!p) { padPrev = []; return; }
+  document.body.classList.add("has-pad");
+  const btn = i => { const b = p.buttons[i]; return !!(b && (b.pressed || b.value > .5)); };
+  const hit = i => btn(i) && !padPrev[i];
+  const dz = v => Math.abs(v) < PAD_DZ ? 0 : (v - Math.sign(v) * PAD_DZ) / (1 - PAD_DZ);
+  const clamp1 = v => Math.max(-1, Math.min(1, v));
+  padX = clamp1(dz(p.axes[0] || 0) + (btn(15) ? 1 : 0) - (btn(14) ? 1 : 0));
+  padY = clamp1(dz(p.axes[1] || 0) + (btn(13) ? 1 : 0) - (btn(12) ? 1 : 0));
+  if (state === "play" && [0, 1, 2, 3, 5, 7].some(hit)) dropBomb();
+  if (hit(9)) { if (state === "play" || state === "dying" || state === "paused") togglePause(); else if (state !== "over" || performance.now() - overAt > 1000) primary(); }
+  else if (hit(0) && (state === "title" || state === "paused" || (state === "over" && performance.now() - overAt > 1000))) primary();
+  padPrev = p.buttons.map((_, i) => btn(i));
+}
+addEventListener("gamepadconnected", () => { document.body.classList.add("has-pad"); if (state === "play") showBanner("GAMEPAD READY"); });
+addEventListener("gamepaddisconnected", () => {
+  if (!Array.from(navigator.getGamepads ? navigator.getGamepads() : []).some(g => g && g.connected)) document.body.classList.remove("has-pad");
+  if (state === "play" || state === "dying") togglePause();
+});
+
 function dropBomb() {
   if (state !== "play" || !ship.alive || bomb) return;
   bomb = { x0: ship.x, y0: ship.y - 6, tx: ship.x, ty: ship.y - SIGHT, t: 0, dur: .42 };
@@ -377,7 +415,7 @@ sndBtn.addEventListener("click", () => {
 });
 renderSnd();
 function gameOver() {
-  state = "over"; bombBtn.hidden = true;
+  state = "over"; bombBtn.hidden = true; overAt = performance.now();
   const best = score > hi; if (best) { hi = score; try { localStorage.setItem("xevneon-hi", String(hi)); } catch (e) {} }
   kicker.textContent = "GAME OVER · AREA " + area;
   msg.innerHTML = "<strong>" + score.toLocaleString() + "</strong>" + (best ? "New high score. The Nazca lines remember you." : "Solvalou lost. Gump's forces hold the plain.");
@@ -465,7 +503,7 @@ function update(dt) {
     let kx = 0, ky = 0;
     if (keys.ArrowLeft || keys.KeyA) kx--; if (keys.ArrowRight || keys.KeyD) kx++;
     if (keys.ArrowUp || keys.KeyW) ky--; if (keys.ArrowDown || keys.KeyS) ky++;
-    ship.x += kx * 150 * dt + tdx; ship.y += ky * 150 * dt + tdy;
+    ship.x += kx * 150 * dt + padX * 170 * dt + tdx; ship.y += ky * 150 * dt + padY * 170 * dt + tdy;
     ship.x = Math.max(10, Math.min(W - 10, ship.x)); ship.y = Math.max(H * .38, Math.min(H - 18, ship.y));
     ship.inv = Math.max(0, ship.inv - dt);
     fireT -= dt;
@@ -733,6 +771,7 @@ function draw() {
 let last = performance.now();
 function frame(now) {
   const dt = Math.min((now - last) / 1000, 1 / 30); last = now;
+  pollPad();
   if (state !== "paused") update(dt);
   draw(); hud();
   requestAnimationFrame(frame);
