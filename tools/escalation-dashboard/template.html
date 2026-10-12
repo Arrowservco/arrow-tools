@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escalation Transfer Dashboard</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f4f4f2; --surface:#fcfcfb; --line:#e3e2dd; --grid:#ecebe7;
+  --ink:#0b0b0b; --ink2:#52514e; --ink3:#7a7974;
+  --s1:#2a78d6; --s2:#eb6834; --s1-soft:#cde2fb; --warn-bg:#fdeee7;
+}
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme:dark;
+    --bg:#121211; --surface:#1a1a19; --line:#33322f; --grid:#2a2927;
+    --ink:#f0efec; --ink2:#c3c2b7; --ink3:#97968e;
+    --s1:#3987e5; --s2:#d95926; --s1-soft:#184f95; --warn-bg:#3a2218;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121211; --surface:#1a1a19; --line:#33322f; --grid:#2a2927;
+  --ink:#f0efec; --ink2:#c3c2b7; --ink3:#97968e;
+  --s1:#3987e5; --s2:#d95926; --s1-soft:#184f95; --warn-bg:#3a2218;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:0 0 2px}
+h2{font-size:15px;margin:0}
+.sub{color:var(--ink2);font-size:13px;margin:0 0 12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.card-h{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.note{color:var(--ink2);font-size:12px}
+.filters{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end}
+.filters label{display:flex;flex-direction:column;font-size:11px;color:var(--ink2);gap:2px;text-transform:uppercase;letter-spacing:.03em}
+select,input[type=number],input[type=search]{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 8px;min-height:36px;max-width:100%}
+input[type=number]{width:84px}
+.chk{flex-direction:row!important;align-items:center;gap:6px!important;text-transform:none!important;font-size:13px!important;color:var(--ink)!important;min-height:36px}
+button{font:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-height:36px;cursor:pointer}
+button:hover{border-color:var(--ink3)}
+button.on{background:var(--s1);border-color:var(--s1);color:#fff}
+.seg{display:inline-flex;gap:0}
+.seg button{border-radius:0;margin-left:-1px}
+.seg button:first-child{border-radius:8px 0 0 8px;margin-left:0}
+.seg button:last-child{border-radius:0 8px 8px 0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.kpi .l{font-size:11px;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em}
+.kpi .v{font-size:26px;font-weight:650;line-height:1.2;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .d{font-size:12px;color:var(--ink2);margin-top:2px}
+.insights{margin:0;padding-left:18px}
+.insights li{margin:3px 0}
+.grid2{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:900px){.grid2{grid-template-columns:1fr 1fr}}
+.scroll{overflow:auto;max-height:430px;border:1px solid var(--line);border-radius:8px}
+.scroll.tall{max-height:560px}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:7px 9px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--grid)}
+th:first-child,td:first-child{text-align:left}
+td.l,th.l{text-align:left}
+thead th{position:sticky;top:0;background:var(--surface);z-index:1;font-size:11px;color:var(--ink2);text-transform:uppercase;letter-spacing:.03em;cursor:pointer;user-select:none;border-bottom:1px solid var(--line)}
+thead th.sorted{color:var(--ink)}
+tbody tr.row{cursor:pointer}
+tbody tr.row:hover{background:var(--grid)}
+tbody tr.sel{background:var(--s1-soft)}
+.barcell{display:flex;align-items:center;gap:8px;min-width:150px;justify-content:flex-end}
+.bar{flex:1;height:8px;background:var(--grid);border-radius:4px;overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%;background:var(--s1);border-radius:0 4px 4px 0}
+.bar i.hi{background:var(--s2)}
+.pct{min-width:48px;text-align:right}
+.flag{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--s2);background:var(--warn-bg);border-radius:6px;padding:1px 6px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink2);margin:6px 0 0}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.dash{width:16px;border-top:2px dashed var(--ink3);display:inline-block}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{fill:var(--ink2);font:11px system-ui,sans-serif}
+.tip{position:fixed;pointer-events:none;z-index:50;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.18);max-width:260px;display:none}
+.tip b{display:block;margin-bottom:2px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--s1-soft);border-radius:999px;padding:3px 6px 3px 10px;font-size:12px;margin-right:6px}
+.chip button{min-height:22px;padding:0 6px;border-radius:999px;font-size:12px}
+.empty{padding:20px;text-align:center;color:var(--ink2)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.toolbar input[type=search]{flex:1;min-width:140px}
+@media(max-width:640px){
+  #ctWrap :is(th,td):is(:nth-child(3),:nth-child(5)),
+  #agWrap :is(th,td):is(:nth-child(2),:nth-child(3),:nth-child(5),:nth-child(7),:nth-child(8)){display:none}
+  td:first-child{white-space:normal;overflow-wrap:anywhere}
+  .bar{display:none}.barcell{min-width:0}
+  th,td{padding:7px 6px}
+  thead th{white-space:normal;line-height:1.2}
+  .pct{min-width:0}
+}
+details{margin-top:6px}
+summary{cursor:pointer;color:var(--ink2);font-size:12px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Escalation Transfer Dashboard</h1>
+  <p class="sub" id="sub"></p>
+
+  <section class="card" aria-label="Filters">
+    <div class="filters">
+      <label>Team manager<select id="fTm"></select></label>
+      <label>Team<select id="fTeam"></select></label>
+      <label>Brand<select id="fBrand"></select></label>
+      <label>Min transfers<input id="fMin" type="number" min="1" step="5" value="30" inputmode="numeric"></label>
+      <label class="chk"><input id="fExcl" type="checkbox"> Exclude calls from Escalation queues</label>
+      <button id="fReset" type="button">Reset</button>
+    </div>
+  </section>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section class="card" aria-label="Key takeaways">
+    <div class="card-h"><h2>What stands out</h2></div>
+    <ul class="insights" id="insights"></ul>
+  </section>
+
+  <section class="card" aria-label="Call types">
+    <div class="card-h">
+      <div><h2>Call types: escalated % of transfers</h2>
+        <div class="note">Call type = the skill the agent was on when they transferred. Tap a row to see which agents escalate that call type.</div></div>
+      <div class="seg" id="levelSeg" role="group" aria-label="Group call types by">
+        <button data-l="skill" type="button">Full skill</button>
+        <button data-l="ct" type="button" class="on">Call type</button>
+        <button data-l="brand" type="button">Brand</button>
+      </div>
+    </div>
+    <div class="scroll" id="ctWrap"></div>
+    <div class="legend"><span><i class="dot" style="background:var(--s2)"></i>Rate ≥ 1.25× overall</span><span><i class="dot" style="background:var(--s1)"></i>Other</span></div>
+  </section>
+
+  <div class="grid2">
+    <section class="card" aria-label="Weekly trend">
+      <div class="card-h"><div><h2>Weekly trend</h2><div class="note" id="trendNote"></div></div></div>
+      <div id="trend"></div>
+    </section>
+    <section class="card" aria-label="Agent scatter">
+      <div class="card-h"><div><h2>Agents: volume vs. escalated %</h2><div class="note">Each dot is an agent with at least the minimum transfers. Tap a dot to open the agent.</div></div></div>
+      <div id="scatter"></div>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--s2)"></i>Flagged</span>
+        <span><i class="dot" style="background:var(--s1);opacity:.7"></i>Not flagged</span>
+        <span><i class="dash"></i>Overall rate</span>
+      </div>
+    </section>
+  </div>
+
+  <section class="card" aria-label="Agents">
+    <div class="card-h">
+      <div><h2 id="agTitle">Agents: escalated % of their transfers</h2>
+        <div class="note">Mix-adj. index = escalated ÷ what you’d expect given the agent’s call types (1.00 = typical). <b>Flagged</b> = at least 2 standard errors above expected <i>and</i> index ≥ 1.25, so small samples and naturally high-escalation call types don’t get blamed on the agent.</div></div>
+    </div>
+    <div class="toolbar">
+      <span id="selType"></span>
+      <input id="agSearch" type="search" placeholder="Search agent or manager" aria-label="Search agents">
+      <button id="csv" type="button">Download CSV</button>
+    </div>
+    <div class="scroll tall" id="agWrap"></div>
+  </section>
+
+  <section class="card" id="detail" aria-label="Agent detail" hidden></section>
+
+  <details class="card"><summary>Definitions &amp; notes</summary>
+    <ul class="insights">
+      <li><b>Escalated transfer</b> = a transfer whose destination skill name contains “Escalation” (e.g. EMA_Credit_Escalation, CTE_Credit_Escalation, NHE_Res_Resolution_Escalation).</li>
+      <li><b>Escalated % of transfers</b> = escalated transfers ÷ all of that agent’s (or call type’s) transfers in the data.</li>
+      <li>Rows are transfers, not unique calls; a call transferred more than once counts each time.</li>
+      <li>Expected escalations = for each of the agent’s transfers, the overall escalation rate of that full skill, summed. Standard error assumes independent transfers.</li>
+      <li id="srcNote"></li>
+    </ul>
+  </details>
+</main>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const D = /*__DATA__*/null;
+(() => {
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => n.toLocaleString('en-US');
+const pc = (x, d = 1) => (x * 100).toFixed(d) + '%';
+
+// ---- decode -----------------------------------------------------------
+const R = D.rows, NR = R.length;
+const ag = D.agents; // [name, tmIdx, teamIdx]
+const AG = 0, OS = 1, TS = 2, TY = 3, DY = 4, ES = 5;
+const pretty = t => ['RES','BUS'].includes(t.toUpperCase()) ? t[0].toUpperCase()+t.slice(1).toLowerCase() : (t.length <= 3 ? t.toUpperCase() : t);
+const brandOf = s => s.split('_')[0];
+const ctOf = s => s.split('_').slice(1).map(t => /^spanish$/i.test(t) ? 'Span' : pretty(t)).join('_') || s;
+const osBrand = D.oskills.map(brandOf);
+const osCt = D.oskills.map(ctOf);
+const osEsc = D.oskills.map(s => /escalat/i.test(s));
+const brands = [...new Set(osBrand)].sort();
+const keyFns = {
+  skill: i => D.oskills[i],
+  ct: i => osCt[i],
+  brand: i => osBrand[i],
+};
+const levelName = {skill:'Skill', ct:'Call type', brand:'Brand'};
+
+// ---- state ------------------------------------------------------------
+const S = {tm:'All', team:'All', brand:'All', min:30, excl:false, level:'ct', selType:null, selAgent:null,
+  ctSort:{k:'pct',d:-1}, agSort:{k:'pct',d:-1}, q:''};
+
+function fillSel(el, items) {
+  el.innerHTML = ['All', ...items].map(v => `<option>${esc(v)}</option>`).join('');
+}
+fillSel($('fTm'), [...D.tms].sort());
+fillSel($('fTeam'), [...D.teams].sort());
+fillSel($('fBrand'), brands);
+$('sub').textContent = `${D.period} · ${fmt(NR)} transfers · ${fmt(ag.length)} agents · ${D.from} to ${D.to}`;
+$('srcNote').textContent = `Source: June 2026 Transfer Dashboard export (Data tab, CLIENT-team rows already excluded). Data through ${D.to}.`;
+
+// ---- core computation -------------------------------------------------
+function baseRows() {
+  const tmI = S.tm === 'All' ? -1 : D.tms.indexOf(S.tm);
+  const teamI = S.team === 'All' ? -1 : D.teams.indexOf(S.team);
+  const out = [];
+  for (let i = 0; i < NR; i++) {
+    const r = R[i], a = ag[r[AG]];
+    if (tmI >= 0 && a[1] !== tmI) continue;
+    if (teamI >= 0 && a[2] !== teamI) continue;
+    if (S.brand !== 'All' && osBrand[r[OS]] !== S.brand) continue;
+    if (S.excl && osEsc[r[OS]]) continue;
+    out.push(r);
+  }
+  return out;
+}
+
+function compute() {
+  const rows = baseRows();
+  let N = rows.length, E = 0;
+  const skill = new Map();   // full-skill rate table (for expected)
+  const types = new Map();   // by current level
+  const kf = keyFns[S.level];
+  for (const r of rows) {
+    E += r[ES];
+    let s = skill.get(r[OS]); if (!s) skill.set(r[OS], s = {n:0, e:0}); s.n++; s.e += r[ES];
+    const k = kf(r[OS]);
+    let t = types.get(k); if (!t) types.set(k, t = {k, n:0, e:0}); t.n++; t.e += r[ES];
+  }
+  const rate = N ? E / N : 0;
+  const typeList = [...types.values()].map(t => ({...t, pct:t.e / t.n, share:E ? t.e / E : 0}));
+
+  // agents, optionally restricted to the selected call type
+  const sel = S.selType;
+  const A = new Map();
+  const scoped = sel == null ? rows : rows.filter(r => kf(r[OS]) === sel);
+  for (const r of scoped) {
+    let a = A.get(r[AG]); if (!a) A.set(r[AG], a = {id:r[AG], n:0, e:0, exp:0, v:0});
+    const sk = skill.get(r[OS]), p = sk.e / sk.n;
+    a.n++; a.e += r[ES]; a.exp += p; a.v += p * (1 - p);
+  }
+  const agents = [...A.values()].map(a => {
+    const m = ag[a.id];
+    const z = a.v > 0 ? (a.e - a.exp) / Math.sqrt(a.v) : 0;
+    const idx = a.exp > 0 ? a.e / a.exp : (a.e ? 9.99 : 1);
+    return {...a, name:m[0], tm:D.tms[m[1]], team:D.teams[m[2]], pct:a.e / a.n, idx, z, excess:a.e - a.exp,
+      flag: a.n >= S.min && z >= 2 && idx >= 1.25};
+  });
+  return {rows, N, E, rate, typeList, agents, skill};
+}
+
+// ---- tooltip ----------------------------------------------------------
+const tip = $('tip');
+function showTip(html, x, y) {
+  tip.innerHTML = html; tip.style.display = 'block';
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.max(6, Math.min(innerWidth - w - 6, x + 12)) + 'px';
+  tip.style.top = Math.max(6, Math.min(innerHeight - h - 6, y + 12)) + 'px';
+}
+const hideTip = () => tip.style.display = 'none';
+document.addEventListener('scroll', hideTip, true);
+
+// ---- render -----------------------------------------------------------
+let C;
+function render() {
+  C = compute();
+  renderKpis(); renderInsights(); renderTypes(); renderTrend(); renderAgents(); renderScatter(); renderDetail();
+}
+
+function renderKpis() {
+  const q = C.agents.filter(a => a.n >= S.min);
+  const fl = C.agents.filter(a => a.flag);
+  const flE = fl.reduce((s, a) => s + a.excess, 0);
+  const top = C.typeList.filter(t => t.n >= S.min).sort((a, b) => b.pct - a.pct)[0];
+  const k = [
+    ['Transfers', fmt(C.N), 'in current filter'],
+    ['Escalated transfers', fmt(C.E), `${pc(C.N ? C.E / C.N : 0)} of all transfers`],
+    ['Escalation rate', pc(C.rate), 'escalated ÷ transfers'],
+    ['Agents flagged', `${fl.length}`, `of ${q.length} with ≥${S.min} transfers`],
+    ['Highest-rate call type', top ? pc(top.pct) : '–', top ? `${esc(top.k)} (${fmt(top.n)} transfers)` : 'none meets minimum'],
+  ];
+  $('kpis').innerHTML = k.map(([l, v, d]) => `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`).join('');
+  C.flagExcess = flE;
+}
+
+function renderInsights() {
+  const li = [];
+  if (!C.N) { $('insights').innerHTML = '<li>No transfers match these filters.</li>'; return; }
+  const byCount = [...C.typeList].sort((a, b) => b.e - a.e)[0];
+  li.push(`<b>${esc(byCount.k)}</b> drives the most escalations: ${fmt(byCount.e)} (${pc(byCount.share, 0)} of all), at a ${pc(byCount.pct, 0)} escalation rate.`);
+  const hi = C.typeList.filter(t => t.n >= S.min).sort((a, b) => b.pct - a.pct).slice(0, 3);
+  if (hi.length) li.push(`Highest escalation rates (≥${S.min} transfers): ` + hi.map(t => `<b>${esc(t.k)}</b> ${pc(t.pct, 0)}`).join(', ') + ` vs. ${pc(C.rate, 0)} overall.`);
+  const fl = C.agents.filter(a => a.flag).sort((a, b) => b.excess - a.excess);
+  if (fl.length) {
+    const tot = fl.reduce((s, a) => s + a.e, 0);
+    li.push(`<b>${fl.length} flagged agent${fl.length > 1 ? 's' : ''}</b> sent ${fmt(tot)} escalations (${pc(C.E ? tot / C.E : 0, 0)} of all). Biggest excess over expected: ` +
+      fl.slice(0, 3).map(a => `<b>${esc(a.name)}</b> +${a.excess.toFixed(0)}`).join(', ') + '.');
+  } else li.push('No agents are flagged at this threshold.');
+  const r = C.agents.filter(a => a.n >= S.min).sort((a, b) => b.pct - a.pct)[0];
+  if (r) li.push(`Highest raw escalated %: <b>${esc(r.name)}</b> ${pc(r.pct, 0)} (${r.e} of ${r.n})${r.flag ? '' : ' — not flagged once call mix is considered'}.`);
+  $('insights').innerHTML = li.map(x => `<li>${x}</li>`).join('');
+}
+
+function sortBy(list, s, get) {
+  return list.sort((a, b) => {
+    const x = get(a, s.k), y = get(b, s.k);
+    return (typeof x === 'string' ? x.localeCompare(y) : x - y) * s.d || b.n - a.n;
+  });
+}
+function headers(cols, sort, attr) {
+  return '<tr>' + cols.map(([k, label, left]) =>
+    `<th class="${left ? 'l ' : ''}${sort.k === k ? 'sorted' : ''}" ${attr}="${k}" aria-sort="${sort.k === k ? (sort.d < 0 ? 'descending' : 'ascending') : 'none'}">${label}${sort.k === k ? (sort.d < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('') + '</tr>';
+}
+
+function renderTypes() {
+  const list = C.typeList.filter(t => t.n >= S.min);
+  sortBy(list, S.ctSort, (t, k) => t[k]);
+  const max = Math.max(0.01, ...list.map(t => t.pct));
+  const cols = [['k', levelName[S.level], true], ['n', 'Transfers'], ['e', 'Escalated'], ['pct', 'Escalated %'], ['share', '% of all escalations']];
+  $('ctWrap').innerHTML = !list.length ? '<div class="empty">No call types meet the minimum.</div>' :
+    `<table><thead>${headers(cols, S.ctSort, 'data-ct')}</thead><tbody>` + list.map(t =>
+      `<tr class="row ${S.selType === t.k ? 'sel' : ''}" data-k="${esc(t.k)}" tabindex="0">
+        <td>${esc(t.k)}</td><td>${fmt(t.n)}</td><td>${fmt(t.e)}</td>
+        <td><div class="barcell"><div class="bar"><i class="${t.pct >= 1.25 * C.rate ? 'hi' : ''}" style="width:${(t.pct / max * 100).toFixed(1)}%"></i></div><span class="pct">${pc(t.pct)}</span></div></td>
+        <td>${pc(t.share)}</td></tr>`).join('') + '</tbody></table>';
+}
+
+function agentVisible() {
+  const q = S.q.trim().toLowerCase();
+  return C.agents.filter(a => a.n >= S.min && (!q || a.name.toLowerCase().includes(q) || a.tm.toLowerCase().includes(q)));
+}
+
+function renderAgents() {
+  $('agTitle').textContent = S.selType == null ? 'Agents: escalated % of their transfers' : `Agents on ${S.selType}: escalated % of their transfers`;
+  $('selType').innerHTML = S.selType == null ? '' :
+    `<span class="chip">${levelName[S.level]}: ${esc(S.selType)} <button id="clrType" type="button" aria-label="Clear call type filter">✕</button></span>`;
+  const list = agentVisible();
+  sortBy(list, S.agSort, (a, k) => a[k]);
+  const max = Math.max(0.01, ...list.map(a => a.pct));
+  const cols = [['name', 'Agent', true], ['tm', 'Team manager', true], ['team', 'Team', true], ['n', 'Transfers'], ['e', 'Escalated'],
+    ['pct', 'Escalated %'], ['idx', 'Mix-adj. index'], ['excess', 'Excess'], ['flag', 'Flag']];
+  $('agWrap').innerHTML = !list.length ? `<div class="empty">No agents with ≥${S.min} transfers match.</div>` :
+    `<table><thead>${headers(cols, S.agSort, 'data-ag')}</thead><tbody>` + list.map(a =>
+      `<tr class="row ${S.selAgent === a.id ? 'sel' : ''}" data-id="${a.id}" tabindex="0">
+        <td>${esc(a.name)}</td><td class="l">${esc(a.tm)}</td><td class="l">${esc(a.team)}</td>
+        <td>${fmt(a.n)}</td><td>${fmt(a.e)}</td>
+        <td><div class="barcell"><div class="bar"><i class="${a.flag ? 'hi' : ''}" style="width:${(a.pct / max * 100).toFixed(1)}%"></i></div><span class="pct">${pc(a.pct)}</span></div></td>
+        <td>${a.idx.toFixed(2)}</td><td>${a.excess >= 0 ? '+' : ''}${a.excess.toFixed(1)}</td>
+        <td>${a.flag ? '<span class="flag">▲ High</span>' : ''}</td></tr>`).join('') + '</tbody></table>';
+}
+
+// ---- charts -----------------------------------------------------------
+function renderScatter() {
+  const el = $('scatter');
+  const pts = C.agents.filter(a => a.n >= S.min);
+  if (!pts.length) { el.innerHTML = '<div class="empty">No agents meet the minimum.</div>'; return; }
+  const W = Math.max(280, el.clientWidth || 520), H = Math.round(Math.min(340, W * 0.72));
+  const m = {l:40, r:12, t:10, b:34};
+  const xmin = Math.max(1, Math.min(...pts.map(p => p.n))), xmax = Math.max(...pts.map(p => p.n));
+  const lx0 = Math.log(xmin * 0.85), lx1 = Math.log(xmax * 1.1);
+  const ymax = Math.min(1, Math.max(0.1, Math.ceil(Math.max(...pts.map(p => p.pct)) * 10 + 0.5) / 10));
+  const X = v => m.l + (Math.log(v) - lx0) / (lx1 - lx0) * (W - m.l - m.r);
+  const Y = v => H - m.b - v / ymax * (H - m.t - m.b);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Scatter of agent transfers against escalated percent">`;
+  for (let v = 0; v <= ymax + 1e-9; v += ymax > 0.5 ? 0.2 : 0.1) {
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${Math.round(v * 100)}%</text>`;
+  }
+  const ticks = [10, 20, 50, 100, 200, 500].filter(t => t >= xmin * 0.85 && t <= xmax * 1.1);
+  ticks.forEach(t => s += `<line x1="${X(t)}" x2="${X(t)}" y1="${H - m.b}" y2="${H - m.b + 4}" stroke="var(--ink3)"/><text x="${X(t)}" y="${H - m.b + 16}" text-anchor="middle">${t}</text>`);
+  s += `<text x="${(m.l + W - m.r) / 2}" y="${H - 4}" text-anchor="middle">Transfers (log scale)</text>`;
+  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(C.rate)}" y2="${Y(C.rate)}" stroke="var(--ink3)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  s += pts.filter(p => !p.flag).concat(pts.filter(p => p.flag)).map(p =>
+    `<circle data-id="${p.id}" cx="${X(p.n).toFixed(1)}" cy="${Y(p.pct).toFixed(1)}" r="${p.flag ? 5.5 : 4.5}" fill="${p.flag ? 'var(--s2)' : 'var(--s1)'}" fill-opacity="${p.flag ? 1 : .6}" stroke="var(--surface)" stroke-width="1.5" style="cursor:pointer"/>` +
+    `<circle data-id="${p.id}" cx="${X(p.n).toFixed(1)}" cy="${Y(p.pct).toFixed(1)}" r="12" fill="transparent" style="cursor:pointer"/>`).join('');
+  el.innerHTML = s + '</svg>';
+}
+
+function renderTrend() {
+  const el = $('trend'), wk = new Map();
+  const kf = keyFns[S.level];
+  for (const r of C.rows) {
+    if (S.selType != null && kf(r[OS]) !== S.selType) continue;
+    if (S.selAgent != null && r[AG] !== S.selAgent) continue;
+    const w = Math.floor((r[DY] - 1) / 7);
+    let o = wk.get(w); if (!o) wk.set(w, o = {w, n:0, e:0, d0:99, d1:0});
+    o.n++; o.e += r[ES]; o.d0 = Math.min(o.d0, r[DY]); o.d1 = Math.max(o.d1, r[DY]);
+  }
+  const mon = new Date(D.from + 'T00:00').toLocaleString('en-US', {month:'short'});
+  const list = [...wk.values()].sort((a, b) => a.w - b.w);
+  $('trendNote').textContent = (S.selAgent != null ? `${ag[S.selAgent][0]}` : 'Current filter') + (S.selType != null ? ` · ${S.selType}` : '') + ' · escalated % by week';
+  if (!list.length) { el.innerHTML = '<div class="empty">No data.</div>'; return; }
+  const W = Math.max(280, el.clientWidth || 520), H = Math.round(Math.min(300, W * 0.62));
+  const m = {l:40, r:14, t:14, b:30};
+  const ymax = Math.min(1, Math.max(0.1, Math.ceil(Math.max(...list.map(o => o.e / o.n), C.rate) * 10 + 0.5) / 10));
+  const X = i => m.l + (list.length === 1 ? 0.5 : i / (list.length - 1)) * (W - m.l - m.r);
+  const Y = v => H - m.b - v / ymax * (H - m.t - m.b);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Weekly escalated percent">`;
+  for (let v = 0; v <= ymax + 1e-9; v += ymax > 0.5 ? 0.2 : 0.1)
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end">${Math.round(v * 100)}%</text>`;
+  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(C.rate)}" y2="${Y(C.rate)}" stroke="var(--ink3)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  s += `<polyline fill="none" stroke="var(--s1)" stroke-width="2" points="${list.map((o, i) => `${X(i).toFixed(1)},${Y(o.e / o.n).toFixed(1)}`).join(' ')}"/>`;
+  list.forEach((o, i) => {
+    s += `<text x="${X(i)}" y="${H - 10}" text-anchor="middle">${mon} ${o.d0}${o.d1 > o.d0 ? '–' + o.d1 : ''}</text>`;
+    s += `<circle data-w="${i}" cx="${X(i).toFixed(1)}" cy="${Y(o.e / o.n).toFixed(1)}" r="5" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>` +
+         `<circle data-w="${i}" cx="${X(i).toFixed(1)}" cy="${Y(o.e / o.n).toFixed(1)}" r="14" fill="transparent"/>`;
+  });
+  el.innerHTML = s + '</svg>';
+  el._list = list;
+}
+
+function renderDetail() {
+  const el = $('detail');
+  if (S.selAgent == null) { el.hidden = true; return; }
+  const a = ag[S.selAgent], kf = keyFns[S.level];
+  const per = new Map();
+  for (const r of C.rows) {
+    if (r[AG] !== S.selAgent) continue;
+    const k = kf(r[OS]);
+    let o = per.get(k); if (!o) per.set(k, o = {k, n:0, e:0, exp:0});
+    const sk = C.skill.get(r[OS]);
+    o.n++; o.e += r[ES]; o.exp += sk.e / sk.n;
+  }
+  const list = [...per.values()].map(o => {
+    const tt = C.typeList.find(t => t.k === o.k);
+    return {...o, pct:o.e / o.n, avg:tt ? tt.pct : 0, excess:o.e - o.exp};
+  }).sort((x, y) => y.excess - x.excess || y.n - x.n);
+  const tot = list.reduce((s, o) => ({n:s.n + o.n, e:s.e + o.e}), {n:0, e:0});
+  el.hidden = false;
+  el.innerHTML = `<div class="card-h"><div><h2>${esc(a[0])}</h2>
+      <div class="note">${esc(D.tms[a[1]])} · ${esc(D.teams[a[2]])} · ${fmt(tot.n)} transfers, ${fmt(tot.e)} escalated (${pc(tot.n ? tot.e / tot.n : 0)})</div></div>
+      <button id="closeAgent" type="button">Close</button></div>
+    <div class="note" style="margin-bottom:6px">Where this agent’s escalations come from, by ${levelName[S.level].toLowerCase()}. “Excess” = escalated minus what the average agent would escalate on the same calls.</div>
+    <div class="scroll"><table><thead><tr><th class="l">${levelName[S.level]}</th><th>Transfers</th><th>Escalated</th><th>Agent %</th><th>Everyone %</th><th>Excess</th></tr></thead><tbody>` +
+    list.map(o => `<tr><td>${esc(o.k)}</td><td>${fmt(o.n)}</td><td>${fmt(o.e)}</td><td>${pc(o.pct)}</td><td>${pc(o.avg)}</td><td>${o.excess >= 0 ? '+' : ''}${o.excess.toFixed(1)}</td></tr>`).join('') +
+    '</tbody></table></div>';
+  if (!el._seen || el._seen !== S.selAgent) { el._seen = S.selAgent; el.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+}
+
+// ---- events -----------------------------------------------------------
+$('fTm').onchange = e => { S.tm = e.target.value; S.selType = null; render(); };
+$('fTeam').onchange = e => { S.team = e.target.value; render(); };
+$('fBrand').onchange = e => { S.brand = e.target.value; S.selType = null; render(); };
+$('fMin').oninput = e => { S.min = Math.max(1, +e.target.value || 1); render(); };
+$('fExcl').onchange = e => { S.excl = e.target.checked; render(); };
+$('fReset').onclick = () => {
+  Object.assign(S, {tm:'All', team:'All', brand:'All', min:30, excl:false, selType:null, selAgent:null, q:''});
+  $('fTm').value = $('fTeam').value = $('fBrand').value = 'All'; $('fMin').value = 30; $('fExcl').checked = false; $('agSearch').value = '';
+  render();
+};
+$('agSearch').oninput = e => { S.q = e.target.value; renderAgents(); };
+document.querySelectorAll('#levelSeg button').forEach(b => b.onclick = () => {
+  S.level = b.dataset.l; S.selType = null;
+  document.querySelectorAll('#levelSeg button').forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+function sortClick(attr, sortObj, after) {
+  return e => {
+    const th = e.target.closest('th'); if (!th) return;
+    const k = th.getAttribute(attr); if (!k) return;
+    const text = ['k', 'name', 'tm', 'team'].includes(k);
+    sortObj.d = sortObj.k === k ? -sortObj.d : (text ? 1 : -1); sortObj.k = k; after();
+  };
+}
+const openRow = (el, fn) => {
+  el.addEventListener('click', e => { const tr = e.target.closest('tr.row'); if (tr) fn(tr); });
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { const tr = e.target.closest('tr.row'); if (tr) { e.preventDefault(); fn(tr); } } });
+};
+$('ctWrap').addEventListener('click', sortClick('data-ct', S.ctSort, renderTypes));
+$('agWrap').addEventListener('click', sortClick('data-ag', S.agSort, renderAgents));
+openRow($('ctWrap'), tr => { S.selType = S.selType === tr.dataset.k ? null : tr.dataset.k; render(); if (S.selType != null) $('agTitle').scrollIntoView({behavior:'smooth', block:'start'}); });
+openRow($('agWrap'), tr => { S.selAgent = +tr.dataset.id; renderAgents(); renderTrend(); renderDetail(); });
+$('selType').addEventListener('click', e => { if (e.target.id === 'clrType') { S.selType = null; render(); } });
+$('detail').addEventListener('click', e => { if (e.target.id === 'closeAgent') { S.selAgent = null; $('detail')._seen = null; renderAgents(); renderTrend(); renderDetail(); } });
+
+$('scatter').addEventListener('click', e => { const id = e.target.dataset && e.target.dataset.id; if (id != null) { S.selAgent = +id; hideTip(); renderAgents(); renderTrend(); renderDetail(); } });
+$('scatter').addEventListener('pointermove', e => {
+  const id = e.target.dataset && e.target.dataset.id; if (id == null) return hideTip();
+  const a = C.agents.find(x => x.id === +id);
+  showTip(`<b>${esc(a.name)}</b>${esc(a.tm)}<br>${a.e} of ${a.n} escalated (${pc(a.pct)})<br>Mix-adj. index ${a.idx.toFixed(2)}${a.flag ? ' · ▲ flagged' : ''}`, e.clientX, e.clientY);
+});
+$('scatter').addEventListener('pointerleave', hideTip);
+$('trend').addEventListener('pointermove', e => {
+  const w = e.target.dataset && e.target.dataset.w; if (w == null) return hideTip();
+  const o = $('trend')._list[+w];
+  showTip(`<b>Days ${o.d0}${o.d1 > o.d0 ? '–' + o.d1 : ''}</b>${o.e} of ${fmt(o.n)} escalated (${pc(o.e / o.n)})`, e.clientX, e.clientY);
+});
+$('trend').addEventListener('pointerleave', hideTip);
+$('trend').addEventListener('click', e => e.stopPropagation());
+
+$('csv').onclick = () => {
+  const list = agentVisible(); sortBy(list, S.agSort, (a, k) => a[k]);
+  const q = v => `"${String(v).replace(/"/g, '""')}"`;
+  const lines = [['Agent', 'Team Manager', 'Team', 'Transfers', 'Escalated', 'Escalated %', 'Expected', 'Mix-adj index', 'Excess', 'Flagged'].join(',')]
+    .concat(list.map(a => [q(a.name), q(a.tm), q(a.team), a.n, a.e, (a.pct * 100).toFixed(1), a.exp.toFixed(1), a.idx.toFixed(2), a.excess.toFixed(1), a.flag ? 'Y' : ''].join(',')));
+  const url = URL.createObjectURL(new Blob([lines.join('\n')], {type:'text/csv'}));
+  const l = document.createElement('a'); l.href = url; l.download = 'escalation-agents.csv'; l.click(); URL.revokeObjectURL(url);
+};
+
+let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { renderScatter(); renderTrend(); }, 120); });
+render();
+})();
+</script>
+</body>
+</html>
