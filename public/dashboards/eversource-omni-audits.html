@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OMNI Audit Pulse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: control-room board. Headline count + coverage ring on top, a scrolling account ticker, then a grid of breakdown panels and a searchable row table. */
+:root {
+  --bg: #eef2f1;
+  --surface: #ffffff;
+  --surface-2: #f5f8f7;
+  --ink: #12201f;
+  --muted: #566866;
+  --line: #d6dfdd;
+  --bar: #0f766e;
+  --bar-soft: #cfe7e3;
+  --alert: #c2410c;
+  --alert-soft: #fde7da;
+  --ok: #166534;
+  --font-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b1413; --surface: #121e1d; --surface-2: #17262a;
+    --ink: #e5eeec; --muted: #94a7a4; --line: #243634;
+    --bar: #3fb8aa; --bar-soft: #1d3a37; --alert: #fb923c; --alert-soft: #3a2415; --ok: #6ee7a0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b1413; --surface: #121e1d; --surface-2: #17262a;
+  --ink: #e5eeec; --muted: #94a7a4; --line: #243634;
+  --bar: #3fb8aa; --bar-soft: #1d3a37; --alert: #fb923c; --alert-soft: #3a2415; --ok: #6ee7a0;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; padding-inline: 16px; padding-block: 20px 40px; }
+.wrap { max-width: 1120px; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+h1, h2, h3, p { margin: 0; }
+.num { font-family: var(--font-display); font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+:focus-visible { outline: 2px solid var(--bar); outline-offset: 2px; }
+
+/* header */
+header { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; }
+header h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 6vw, 44px); line-height: 1; letter-spacing: .01em; text-wrap: balance; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; padding: 5px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--muted); }
+.pill.alert { background: var(--alert-soft); color: var(--alert); border-color: transparent; font-weight: 600; }
+.pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--alert); position: relative; }
+.pulse::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--alert); opacity: 0; animation: ping 2s ease-out infinite; }
+@keyframes ping { 0% { transform: scale(.4); opacity: .8; } 80%, 100% { transform: scale(1.5); opacity: 0; } }
+
+/* hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+.big { display: grid; gap: 14px; align-content: space-between; }
+.bignum { font-size: clamp(76px, 18vw, 132px); line-height: .9; color: var(--alert); }
+.bignum small { font-size: .45em; margin-left: 2px; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile { border-top: 2px solid var(--line); padding-top: 8px; min-width: 0; }
+.tile .num { font-size: 30px; line-height: 1.05; display: block; }
+.tile span.l { font-size: 12.5px; color: var(--muted); }
+.ringbox { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center; }
+.ring { width: 132px; height: 132px; flex: none; }
+.ring .trk { stroke: var(--bar-soft); }
+.ring .arc { stroke: var(--bar); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 60px 60px; animation: draw 1.4s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes draw { from { stroke-dashoffset: var(--circ); } }
+.ring text { fill: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 26px; }
+.ringbox p { color: var(--muted); font-size: 14px; }
+.ringbox p b { color: var(--ink); font-weight: 600; }
+
+/* ticker */
+.ticker { min-width: 0; overflow: hidden; border-block: 1px solid var(--line); padding-block: 10px; mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent); }
+.track { display: flex; gap: 10px; width: max-content; animation: slide 60s linear infinite; }
+.ticker:hover .track { animation-play-state: paused; }
+@keyframes slide { to { transform: translateX(calc(-50% - 5px)); } }
+.chip { font-family: var(--font-mono); font-size: 13px; padding: 5px 11px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); white-space: nowrap; }
+.chip.odd { border-color: var(--alert); color: var(--alert); }
+
+/* panels */
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.panel { display: grid; gap: 12px; align-content: start; }
+.panel h2 { font-family: var(--font-display); font-weight: 600; font-size: 22px; letter-spacing: .01em; }
+.panel .sub { color: var(--muted); font-size: 13px; margin-top: -8px; }
+.rows { display: grid; gap: 8px; }
+.row { display: grid; grid-template-columns: minmax(90px, 38%) minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 13.5px; padding: 2px 0; border-radius: 4px; }
+.row .lab { overflow-wrap: anywhere; }
+.row .track2 { height: 12px; background: var(--bar-soft); border-radius: 2px; overflow: hidden; }
+.row .fill { height: 100%; background: var(--bar); border-radius: 0 4px 4px 0; transform-origin: left; animation: grow .9s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i) * 70ms); }
+@keyframes grow { from { transform: scaleX(0); } }
+.row .val { min-width: 4.5ch; text-align: right; color: var(--muted); }
+.row:hover, .row:focus-visible { background: var(--surface-2); }
+.row.nocount .track2 { background: transparent; border: 1px dashed var(--line); }
+.row.nocount .val { color: var(--muted); opacity: .6; }
+.note { font-size: 12.5px; color: var(--muted); border-left: 2px solid var(--alert); padding-left: 10px; }
+
+/* timeline */
+.tl { position: relative; height: 84px; margin-inline: 8px; }
+.tl::before { content: ""; position: absolute; left: 0; right: 0; top: 30px; height: 2px; background: var(--line); }
+.dot { position: absolute; top: 24px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--bar); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--bar); animation: pop .6s cubic-bezier(.3,1.6,.5,1) both; animation-delay: calc(var(--i) * 140ms + 300ms); }
+.dot.rec { background: var(--alert); box-shadow: 0 0 0 1px var(--alert); }
+.dlab { position: absolute; top: 46px; transform: translateX(-50%); text-align: center; font-size: 12px; color: var(--muted); white-space: nowrap; }
+@keyframes pop { from { transform: scale(0); opacity: 0; } }
+.cols { display: flex; align-items: flex-end; gap: 3px; height: 130px; }
+.col { flex: 1 1 0; min-width: 2px; background: var(--bar); border-radius: 3px 3px 0 0; transform-origin: bottom; animation: rise .8s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i) * 18ms); }
+.col:hover { background: var(--alert); }
+@keyframes rise { from { transform: scaleY(0); } }
+.axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+
+/* load + table */
+.load { display: grid; gap: 10px; }
+textarea { width: 100%; min-height: 84px; resize: vertical; font-family: var(--font-mono); font-size: 12.5px; padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button, .filebtn { font: inherit; font-weight: 600; font-size: 14px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+button.primary { background: var(--bar); border-color: var(--bar); color: #fff; }
+:root[data-theme="dark"] button.primary { color: #06201d; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button.primary { color: #06201d; } }
+button:hover, .filebtn:hover { border-color: var(--bar); }
+.filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.filebtn:focus-within { outline: 2px solid var(--bar); outline-offset: 2px; }
+#msg { font-size: 13px; color: var(--muted); min-height: 1.4em; }
+#msg.err { color: var(--alert); }
+.tblhead { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+input[type=search] { font: inherit; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); min-width: 0; width: min(260px, 100%); }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 640px; }
+th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); }
+td { padding: 8px 10px; border-bottom: 1px solid var(--line); }
+td.dim { color: var(--muted); }
+tbody tr { animation: fadein .4s both; animation-delay: calc(var(--i) * 25ms); }
+@keyframes fadein { from { opacity: 0; } }
+.tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12.5px; padding: 5px 9px; border-radius: 6px; opacity: 0; transition: opacity .12s; max-width: 240px; }
+footer { font-size: 12.5px; color: var(--muted); }
+
+@media (max-width: 860px) {
+  .hero, .grid { grid-template-columns: minmax(0, 1fr); }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 440px) {
+  .ringbox { grid-template-columns: minmax(0, 1fr); justify-items: start; }
+  .row { grid-template-columns: minmax(80px, 42%) minmax(0, 1fr) auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .track { width: auto; flex-wrap: wrap; }
+  .ticker { mask-image: none; -webkit-mask-image: none; }
+  .track .dupe { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow">Eversource · OMNI Audit Cancelled Disconnect</p>
+      <h1>Tracked Incorrectly</h1>
+    </div>
+    <div class="meta">
+      <span class="pill alert"><span class="pulse"></span>Auditor Comments = TRACKED INCORRECTLY</span>
+      <span class="pill" id="srcpill">PDF snapshot · Sep 5, 2026 8:16 PM</span>
+    </div>
+  </header>
+
+  <section class="hero" aria-label="Headline numbers">
+    <div class="card big">
+      <div>
+        <p class="eyebrow">Items in the filtered list</p>
+        <div class="num bignum" id="bigNum" aria-live="polite">331<small>+</small></div>
+      </div>
+      <div class="tiles" id="tiles"></div>
+    </div>
+    <div class="card ringbox">
+      <svg class="ring" viewBox="0 0 120 120" role="img" aria-label="Share of list in view">
+        <circle class="trk" cx="60" cy="60" r="50" fill="none" stroke-width="12"/>
+        <circle class="arc" id="arc" cx="60" cy="60" r="50" fill="none" stroke-width="12"/>
+        <text x="60" y="68" text-anchor="middle" id="ringTxt">7%</text>
+      </svg>
+      <p id="ringCopy"></p>
+    </div>
+  </section>
+
+  <div class="ticker" aria-label="Account numbers in view"><div class="track" id="ticker"></div></div>
+
+  <section class="grid" id="panels"></section>
+
+  <section class="card load" aria-label="Load full export">
+    <h2 class="num" style="font-size:22px">Load the full list</h2>
+    <p class="sub" style="color:var(--muted);font-size:13.5px">The PDF only captured 23 of the 331+ rows and the filter panel has no counts. Export the SharePoint list to CSV and drop it here to fill every chart. Rows are read in this browser and never uploaded.</p>
+    <textarea id="paste" placeholder="Paste CSV or tab-separated rows, header included" aria-label="Paste export rows"></textarea>
+    <div class="btns">
+      <button class="primary" id="goBtn" type="button">Build dashboard</button>
+      <label class="filebtn">Choose CSV file<input type="file" id="fileIn" accept=".csv,.tsv,.txt,text/csv"></label>
+      <button id="resetBtn" type="button">Back to PDF snapshot</button>
+    </div>
+    <p id="msg" role="status"></p>
+  </section>
+
+  <section class="card panel" aria-label="Rows">
+    <div class="tblhead">
+      <h2>Accounts</h2>
+      <input type="search" id="q" placeholder="Search account, NTID, auditor" aria-label="Search rows">
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Account</th><th>OpCo</th><th>Audit type</th><th>Result</th><th>NTID</th><th>Modified by</th><th>Action date</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="btns"><button id="moreBtn" type="button">Show more</button><span id="count" style="color:var(--muted);font-size:13px"></span></div>
+  </section>
+
+  <footer>Source: Alorica SharePoint list "OMNI Audit Cancelled Disconnect", All Items view, printed to PDF Sep 5, 2026. Account prefixes are the first two digits of each account number; what a prefix stands for is not stated in the source.</footer>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+(function () {
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- real data read from the PDF ---------- */
+  var SNAP = {
+    total: 331,
+    accounts: ["1002480220","71001300434","74002959257","73000147089","73004814122","74011514598","74021285536","73004004468","74018934351","72003671160","72001131209","72003519724","74021307108","72002679339","74014375393","72003512398","72003209839","72003605358","71002211499","72002014040","74003580011","72001567832","71006001870"],
+    facets: {
+      opco:   ["EMA Electric","EGMA","WMA Electric","EMA Gas","(Empty)"],
+      type:   ["Placed Reconnect","Cancelled Disconnect","(Empty)"],
+      result: ["No Error Found","Coaching Only","Error Found- Before","Error Found - After","(Empty)"],
+      by:     ["Kelneisha Harrison","John Whitt","Keadda Dowdy","Kenishia Goins"],
+      ntid:   ["USER\\KQ007394969","USER\\TB005934295","USER\\TM007387473","USER\\sm007178586","USER\\DJ007229526"]
+    },
+    dates: ["2026-07-22","2026-07-23","2026-09-04","2026-09-04","2026-09-04"]
+  };
+  var FACETS = [
+    { key: "opco", title: "By OpCo" },
+    { key: "type", title: "By audit type" },
+    { key: "result", title: "By audit result" },
+    { key: "by", title: "By auditor (modified by)" },
+    { key: "ntid", title: "By NTID" }
+  ];
+
+  var rows = null;          // null = PDF snapshot, array = loaded export
+  var shown = 25;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
+
+  /* ---------- helpers ---------- */
+  function countUp(el, to, suffix) {
+    suffix = suffix || "";
+    var html = function (n) { return n + (suffix ? "<small>" + suffix + "</small>" : ""); };
+    if (reduce) { el.innerHTML = html(to); return; }
+    var t0 = performance.now(), dur = 1100;
+    (function tick(t) {
+      var p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      el.innerHTML = html(Math.round(to * e));
+      if (p < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+  function tally(list) {
+    var m = {};
+    list.forEach(function (v) { v = v || "(Empty)"; m[v] = (m[v] || 0) + 1; });
+    return Object.keys(m).map(function (k) { return [k, m[k]]; }).sort(function (a, b) { return b[1] - a[1] || a[0].localeCompare(b[0]); });
+  }
+  function fmtDate(iso) {
+    var d = new Date(iso + "T00:00:00");
+    return isNaN(d) ? iso : d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+  function toISO(s) {
+    s = (s || "").trim();
+    var m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return m[1] + "-" + m[2] + "-" + m[3];
+    m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (m) return m[3] + "-" + ("0" + m[1]).slice(-2) + "-" + ("0" + m[2]).slice(-2);
+    return "";
+  }
+
+  /* ---------- views ---------- */
+  function view() {
+    if (rows) {
+      var accts = {};
+      rows.forEach(function (r) { if (r.account) accts[r.account] = 1; });
+      return {
+        total: rows.length, totalSuffix: "",
+        accounts: Object.keys(accts),
+        counted: true,
+        facets: {
+          opco: tally(rows.map(function (r) { return r.opco; })),
+          type: tally(rows.map(function (r) { return r.type; })),
+          result: tally(rows.map(function (r) { return r.result; })),
+          by: tally(rows.map(function (r) { return r.by; })),
+          ntid: tally(rows.map(function (r) { return r.ntid; }))
+        },
+        dates: rows.map(function (r) { return r.date; }).filter(Boolean)
+      };
+    }
+    var f = {};
+    Object.keys(SNAP.facets).forEach(function (k) { f[k] = SNAP.facets[k].map(function (v) { return [v, null]; }); });
+    return { total: SNAP.total, totalSuffix: "+", accounts: SNAP.accounts, counted: false, facets: f, dates: SNAP.dates };
+  }
+
+  function renderHero(v) {
+    countUp($("bigNum"), v.total, v.totalSuffix);
+    var named = function (k) { return v.facets[k].filter(function (x) { return x[0] !== "(Empty)"; }).length; };
+    var tiles = [
+      [v.accounts.length, rows ? "Unique accounts" : "Accounts visible in PDF"],
+      [named("opco"), "OpCos"],
+      [named("by"), "Auditors"],
+      [named("ntid"), rows ? "NTIDs" : "NTIDs visible"]
+    ];
+    $("tiles").innerHTML = tiles.map(function (t) { return '<div class="tile"><span class="num">' + t[0] + '</span><span class="l">' + t[1] + "</span></div>"; }).join("");
+
+    var pct = Math.min(1, v.accounts.length / Math.max(v.total, 1));
+    var circ = 2 * Math.PI * 50, arc = $("arc");
+    arc.style.setProperty("--circ", circ);
+    arc.setAttribute("stroke-dasharray", circ);
+    arc.setAttribute("stroke-dashoffset", circ * (1 - pct));
+    arc.style.animation = "none"; void arc.getBoundingClientRect(); arc.style.animation = "";
+    $("ringTxt").textContent = (rows ? Math.round(pct * 100) : Math.ceil(pct * 100)) + (rows ? "%" : "%");
+    $("ringCopy").innerHTML = rows
+      ? "<b>" + v.accounts.length + " unique accounts</b> across " + v.total + " rows. The accounts-to-rows gap shows how often the same account was tracked incorrectly more than once."
+      : "<b>23 of 331+ rows</b> are readable in the PDF, so at most 7% of the list is in view. Load the export to see the rest.";
+    $("srcpill").textContent = rows ? "Loaded export · " + rows.length + " rows" : "PDF snapshot · Sep 5, 2026 8:16 PM";
+  }
+
+  function renderTicker(v) {
+    var one = v.accounts.slice(0, 80).map(function (a) { return '<span class="chip' + (a.length !== 11 ? " odd" : "") + '">' + esc(a) + "</span>"; }).join("");
+    var two = one.replace(/class="chip/g, 'class="dupe chip');
+    $("ticker").innerHTML = one + two;
+  }
+
+  function groupLabels(uniq, t0, t1) {
+    var groups = [];
+    uniq.forEach(function (d) {
+      var left = (new Date(d[0] + "T00:00:00").getTime() - t0) / (t1 - t0) * 100;
+      var txt = fmtDate(d[0]) + (d[1] > 1 ? " ×" + d[1] : "");
+      var g = groups[groups.length - 1];
+      if (g && left - g.right < 16) { g.right = left; g.txts.push(txt); } else groups.push({ left: left, right: left, txts: [txt] });
+    });
+    return groups.map(function (g) {
+      var mid = Math.min(88, Math.max(12, (g.left + g.right) / 2));
+      return '<span class="dlab" style="left:' + mid + '%">' + g.txts.join(" · ") + "</span>";
+    }).join("");
+  }
+
+  function barRows(list, counted, max, total) {
+    return list.map(function (x, i) {
+      var w = counted && max ? Math.max(2, Math.round(x[1] / max * 100)) : 0;
+      var tip = counted ? x[0] + ": " + x[1] + " (" + Math.round(x[1] / total * 100) + "%)" : x[0] + ": count not in PDF";
+      return '<div class="row' + (counted ? "" : " nocount") + '" tabindex="0" data-tip="' + esc(tip) + '" style="--i:' + i + '">' +
+        '<span class="lab">' + esc(x[0]) + '</span>' +
+        '<span class="track2">' + (counted ? '<span class="fill" style="width:' + w + '%;display:block"></span>' : "") + "</span>" +
+        '<span class="val mono">' + (counted ? x[1] : "n/a") + "</span></div>";
+    }).join("");
+  }
+
+  function renderPanels(v) {
+    var html = "";
+    // account prefix (works in both modes)
+    var pre = tally(v.accounts.map(function (a) { return a.slice(0, 2); })).sort(function (a, b) { return a[0].localeCompare(b[0]); });
+    var pmax = Math.max.apply(null, pre.map(function (x) { return x[1]; }));
+    var odd = v.accounts.filter(function (a) { return a.length !== 11; });
+    html += '<div class="card panel"><h2>Accounts by prefix</h2><p class="sub">First two digits of each ' + (rows ? "unique" : "visible") + ' account number</p><div class="rows">' +
+      barRows(pre, true, pmax, v.accounts.length) + "</div>" +
+      (odd.length ? '<p class="note">' + odd.length + " account" + (odd.length > 1 ? "s have" : " has") + " a length other than 11 digits (" + esc(odd.slice(0, 3).join(", ")) + (odd.length > 3 ? ", …" : "") + "). Likely truncated or mistyped.</p>" : "") + "</div>";
+
+    // timeline / by-day
+    html += '<div class="card panel"><h2>Action timestamps</h2>';
+    if (rows) {
+      var days = tally(v.dates).sort(function (a, b) { return a[0].localeCompare(b[0]); }).slice(-60);
+      var dmax = Math.max.apply(null, days.map(function (d) { return d[1]; }).concat([1]));
+      html += '<p class="sub">Rows per action date' + (days.length ? ", " + fmtDate(days[0][0]) + " to " + fmtDate(days[days.length - 1][0]) : "") + "</p>" +
+        (days.length ? '<div class="cols">' + days.map(function (d, i) { return '<div class="col" style="--i:' + i + ";height:" + Math.max(3, Math.round(d[1] / dmax * 100)) + '%" data-tip="' + fmtDate(d[0]) + ": " + d[1] + ' rows"></div>'; }).join("") + '</div><div class="axis"><span>' + fmtDate(days[0][0]) + "</span><span>" + fmtDate(days[days.length - 1][0]) + "</span></div>" : '<p class="note">No action-date column found in the export.</p>');
+    } else {
+      var t0 = new Date(SNAP.dates[0] + "T00:00:00").getTime(), t1 = new Date(SNAP.dates[SNAP.dates.length - 1] + "T00:00:00").getTime();
+      var uniq = tally(SNAP.dates).sort(function (a, b) { return a[0].localeCompare(b[0]); });
+      html += '<p class="sub">Five timestamps listed in the PDF filter panel</p><div class="tl">' +
+        uniq.map(function (d, i) {
+          var left = (new Date(d[0] + "T00:00:00").getTime() - t0) / (t1 - t0) * 100;
+          return '<span class="dot' + (i === uniq.length - 1 ? " rec" : "") + '" style="left:' + left + "%;--i:" + i + '" data-tip="' + fmtDate(d[0]) + ": " + d[1] + ' timestamp' + (d[1] > 1 ? "s" : "") + '" tabindex="0"></span>';
+        }).join("") + groupLabels(uniq, t0, t1) + '</div><p class="note">Most recent activity is Sep 4, the day before the PDF was printed.</p>';
+    }
+    html += "</div>";
+
+    FACETS.forEach(function (f) {
+      var list = v.facets[f.key];
+      var max = Math.max.apply(null, list.map(function (x) { return x[1] || 0; }).concat([1]));
+      var shownList = v.counted ? list.slice(0, 10) : list;
+      html += '<div class="card panel"><h2>' + f.title + '</h2><p class="sub">' + (v.counted ? list.length + " distinct" + (list.length > 10 ? ", top 10" : "") : "Values present in the list. Counts load from the export.") + '</p><div class="rows">' + barRows(shownList, v.counted, max, v.total) + "</div></div>";
+    });
+    $("panels").innerHTML = html;
+  }
+
+  function renderTable() {
+    var list = rows ? rows : SNAP.accounts.map(function (a) { return { account: a }; });
+    var q = $("q").value.trim().toLowerCase();
+    if (q) list = list.filter(function (r) { return [r.account, r.ntid, r.by, r.opco].join(" ").toLowerCase().indexOf(q) > -1; });
+    var cell = function (x) { return x ? "<td>" + esc(x) + "</td>" : '<td class="dim">–</td>'; };
+    $("tbody").innerHTML = list.slice(0, shown).map(function (r, i) {
+      return '<tr style="--i:' + Math.min(i, 24) % 25 + '"><td class="mono">' + esc(r.account || "") + "</td>" + cell(r.opco) + cell(r.type) + cell(r.result) + cell(r.ntid) + cell(r.by) + cell(r.date ? fmtDate(r.date) : "") + "</tr>";
+    }).join("") || '<tr><td colspan="7" class="dim">No rows match.</td></tr>';
+    $("count").textContent = "Showing " + Math.min(shown, list.length) + " of " + list.length;
+    $("moreBtn").hidden = list.length <= shown;
+  }
+
+  function render() { var v = view(); renderHero(v); renderTicker(v); renderPanels(v); renderTable(); }
+
+  /* ---------- CSV import ---------- */
+  function parse(text) {
+    var delim = (text.split("\n")[0].match(/\t/g) || []).length > (text.split("\n")[0].match(/,/g) || []).length ? "\t" : ",";
+    var out = [], row = [], f = "", q = false, i, c;
+    for (i = 0; i < text.length; i++) {
+      c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c;
+      } else if (c === '"') q = true;
+      else if (c === delim) { row.push(f); f = ""; }
+      else if (c === "\n" || c === "\r") { if (c === "\r" && text[i + 1] === "\n") i++; row.push(f); out.push(row); row = []; f = ""; }
+      else f += c;
+    }
+    if (f.length || row.length) { row.push(f); out.push(row); }
+    return out.filter(function (r) { return r.some(function (x) { return x.trim(); }); });
+  }
+  function norm(s) { return s.toLowerCase().replace(/^﻿/, "").replace(/[^a-z0-9]/g, ""); }
+  function findCol(heads, names, loose) {
+    var h = heads.map(norm), i, j;
+    for (j = 0; j < names.length; j++) { i = h.indexOf(names[j]); if (i > -1) return i; }
+    if (loose) for (j = 0; j < names.length; j++) for (i = 0; i < h.length; i++) if (h[i].indexOf(names[j]) > -1) return i;
+    return -1;
+  }
+  function load(text) {
+    var msg = $("msg"); msg.className = "";
+    var t = parse(text.trim());
+    if (t.length < 2) { msg.className = "err"; msg.textContent = "Nothing to read. Paste the header row plus at least one data row."; return; }
+    var H = t[0];
+    var col = {
+      account: findCol(H, ["teversourceacctactionaccount", "account", "accountnumber"], true),
+      opco: findCol(H, ["teversourceacctactionopco", "opco"], true),
+      ntid: findCol(H, ["teversourceacctactionntid", "ntid"], true),
+      ts: findCol(H, ["teversourceacctactionts", "timestamp"]),
+      type: findCol(H, ["audittype"]),
+      result: findCol(H, ["auditresults", "auditresult"]),
+      cmt: findCol(H, ["auditorcomments", "auditorcomment"]),
+      by: findCol(H, ["modifiedby", "auditor"])
+    };
+    if (col.account < 0 && col.ntid < 0) { msg.className = "err"; msg.textContent = "No account or NTID column found. Check that the first row holds the SharePoint column names."; return; }
+    var get = function (r, k) { return col[k] > -1 ? (r[col[k]] || "").trim() : ""; };
+    var all = t.slice(1).map(function (r) {
+      return { account: get(r, "account"), opco: get(r, "opco"), type: get(r, "type"), result: get(r, "result"), ntid: get(r, "ntid"), by: get(r, "by"), date: toISO(get(r, "ts")), cmt: get(r, "cmt") };
+    });
+    var kept = col.cmt > -1 ? all.filter(function (r) { return /tracked\s*incorrectly/i.test(r.cmt); }) : all;
+    if (!kept.length) { msg.className = "err"; msg.textContent = "None of the " + all.length + " rows have Auditor Comments = TRACKED INCORRECTLY."; return; }
+    rows = kept; shown = 25; $("q").value = "";
+    msg.textContent = "Loaded " + kept.length + " rows" + (kept.length !== all.length ? " (kept TRACKED INCORRECTLY from " + all.length + ")" : "") + ".";
+    render();
+  }
+
+  /* ---------- tooltips ---------- */
+  var tip = $("tip");
+  function showTip(el, x, y) {
+    var s = el.getAttribute("data-tip"); if (!s) return;
+    tip.textContent = s; tip.style.opacity = 1;
+    var w = tip.offsetWidth;
+    tip.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, x + 12)) + "px";
+    tip.style.top = (y + 14) + "px";
+  }
+  document.addEventListener("pointermove", function (e) { var el = e.target.closest && e.target.closest("[data-tip]"); if (el) showTip(el, e.clientX, e.clientY); else tip.style.opacity = 0; });
+  document.addEventListener("focusin", function (e) { var el = e.target.closest && e.target.closest("[data-tip]"); if (el) { var r = el.getBoundingClientRect(); showTip(el, r.left, r.bottom); } });
+  document.addEventListener("focusout", function () { tip.style.opacity = 0; });
+
+  /* ---------- wiring ---------- */
+  $("goBtn").addEventListener("click", function () { load($("paste").value); });
+  $("fileIn").addEventListener("change", function (e) {
+    var f = e.target.files[0]; if (!f) return;
+    var r = new FileReader();
+    r.onload = function () { load(String(r.result)); };
+    r.onerror = function () { $("msg").className = "err"; $("msg").textContent = "Could not read that file. Try pasting its contents instead."; };
+    r.readAsText(f);
+  });
+  $("resetBtn").addEventListener("click", function () { rows = null; shown = 25; $("paste").value = ""; $("msg").className = ""; $("msg").textContent = ""; render(); });
+  $("q").addEventListener("input", function () { shown = 25; renderTable(); });
+  $("moreBtn").addEventListener("click", function () { shown += 50; renderTable(); });
+
+  render();
+})();
+</script>
+</body>
+</html>
