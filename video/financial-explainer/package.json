@@ -1,0 +1,21 @@
+{
+  "name": "financial-explainer-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "30-second animated financial explainer (Remotion, 1080x1920, 30fps)",
+  "type": "module",
+  "scripts": {
+    "preview": "remotion studio src/index.js",
+    "render": "remotion render src/index.js FinancialExplainer out/financial-explainer.mp4",
+    "still": "remotion still src/index.js FinancialExplainer out/still.png --frame=300",
+    "sfx": "bash scripts/make-sfx.sh",
+    "captions": "node scripts/export-captions.mjs",
+    "check": "node scripts/check-timeline.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.537",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.537"
+  }
+}
