@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digest Triage</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --text: #1b1f27; --muted: #5d6675; --line: #e1e5ec;
+    --accent: #2563eb; --dig: #2563eb; --save: #b45309; --cool: #7c3aed; --del: #dc2626; --no: #475569;
+    --shadow: 0 1px 2px rgba(0,0,0,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1218; --card: #181c25; --text: #e8ebf1; --muted: #9aa3b2; --line: #2a303c;
+      --accent: #60a5fa; --dig: #60a5fa; --save: #fbbf24; --cool: #a78bfa; --del: #f87171; --no: #94a3b8;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding-bottom: 90px; }
+  header { padding: 20px 16px 8px; max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  header p { margin: 0; color: var(--muted); font-size: 14px; }
+  nav { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line);
+    padding: 8px 16px; display: flex; gap: 8px; overflow-x: auto; max-width: 100%; }
+  nav a { flex: none; font-size: 13px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line);
+    color: var(--text); text-decoration: none; background: var(--card); white-space: nowrap; }
+  nav a .n { color: var(--muted); margin-left: 4px; }
+  main { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+  section { margin-top: 24px; scroll-margin-top: 56px; }
+  section h2 { font-size: 17px; margin: 0 0 10px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px;
+    margin-bottom: 12px; box-shadow: var(--shadow); transition: opacity .2s; }
+  .card.deleted { opacity: .4; }
+  .card.deleted h3 { text-decoration: line-through; }
+  .card h3 { font-size: 16px; margin: 0 0 6px; line-height: 1.3; }
+  .card .take { margin: 0 0 12px; color: var(--muted); font-size: 14.5px; }
+  .card .take b { color: var(--text); }
+  .find { font-size: 12px; color: var(--accent); text-decoration: none; display: inline-block; margin-bottom: 10px; }
+  .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .acts button { font: inherit; font-size: 13.5px; min-height: 44px; padding: 8px 12px; border-radius: 10px;
+    border: 1.5px solid var(--line); background: transparent; color: var(--text); cursor: pointer; }
+  .acts button[aria-pressed="true"] { color: #fff; border-color: transparent; font-weight: 600; }
+  .acts button[data-a="dig"][aria-pressed="true"]  { background: var(--dig); }
+  .acts button[data-a="save"][aria-pressed="true"] { background: var(--save); }
+  .acts button[data-a="cool"][aria-pressed="true"] { background: var(--cool); }
+  .acts button[data-a="del"][aria-pressed="true"]  { background: var(--del); }
+  .acts button[data-a="no"][aria-pressed="true"]   { background: var(--no); }
+  @media (prefers-color-scheme: dark) { .acts button[aria-pressed="true"] { color: #0f1218; } }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line);
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); z-index: 10; }
+  .bar .in { max-width: 760px; margin: 0 auto; display: flex; gap: 10px; align-items: center; }
+  .bar .sum { flex: 1; font-size: 12.5px; color: var(--muted); }
+  .bar button { font: inherit; font-size: 14px; min-height: 44px; padding: 8px 14px; border-radius: 10px;
+    border: 1.5px solid var(--line); background: transparent; color: var(--text); cursor: pointer; }
+  .bar button.primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
+  @media (prefers-color-scheme: dark) { .bar button.primary { color: #0f1218; } }
+  dialog { width: min(92vw, 560px); border: 1px solid var(--line); border-radius: 14px; background: var(--card);
+    color: var(--text); padding: 16px; }
+  dialog::backdrop { background: rgba(0,0,0,.5); }
+  dialog textarea { width: 100%; height: 280px; font: 13px/1.4 ui-monospace, Menlo, monospace; background: var(--bg);
+    color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 10px; resize: vertical; }
+  dialog .row { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; }
+  dialog button { font: inherit; min-height: 44px; padding: 8px 14px; border-radius: 10px; border: 1.5px solid var(--line);
+    background: transparent; color: var(--text); cursor: pointer; }
+  dialog button.primary { background: var(--accent); border-color: transparent; color: #fff; font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Digest Triage</h1>
+  <p>Tap to tag each item (you can pick more than one). Choices save on this device. Hit <b>Copy results</b> at the bottom to paste back.</p>
+</header>
+<nav id="nav"></nav>
+<main id="main"></main>
+
+<div class="bar">
+  <div class="in">
+    <div class="sum" id="sum"></div>
+    <button id="reset">Reset</button>
+    <button id="copy" class="primary">Copy results</button>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <b>Your results</b>
+  <p style="margin:4px 0 8px;font-size:13px;color:var(--muted)">Auto-copy may be blocked on some browsers — select all and copy manually if so.</p>
+  <textarea id="out" readonly></textarea>
+  <div class="row"><button id="close">Close</button><button id="copy2" class="primary">Copy</button></div>
+</dialog>
+
+<script>
+const ACTIONS = [
+  ["dig","Dig deeper now"],["save","Save for later"],["cool","Super cool"],["del","Delete"],["no","No more like this"]
+];
+
+const DATA = [
+  { title: "Non-Coder Workflows & Prompting Architecture", items: [
+    ["Do the best models and harnesses compensate for low effort prompts?",
+     "Plain-English specs and simple architectures (like single-file HTML/JS apps) beat complex coding harnesses when your business logic is clear."],
+    ["A step-by-step guide to your first mobile app, from someone who shipped 100+ apps before AI",
+     "Scoping small, functional mobile/web utilities without getting trapped in technical bloat or dependency hell."],
+    ["Could you help me understand architectures/coding better? What's your preferred workflow?",
+     "Structuring projects so the AI doesn't break existing features when you prompt it to add a new button or metric."],
+    ["My biggest problem with vibe coding",
+     "Common bottlenecks and code-rot traps when relying 100% on prompting, plus how users work around them."],
+    ["I am about to prove \"AI dev\" haters wrong",
+     "Pragmatic strategies for shipping functional tools to end-users despite pushback from traditional software engineers."]
+  ]},
+  { title: "3PL Operations & eBay Resale Tools", items: [
+    ["I built an open source invoicing MCP so my agents can track and bill my clients for the work they do",
+     "Turning raw work/activity logs directly into automated client invoices using Model Context Protocol."],
+    ["A two-day effort to create a really worthwhile suite of apps to sell unwanted books",
+     "Building a suite of small, single-purpose resale tools (sourcing evaluation, pricing, listing) over a weekend instead of one fragile mega-app."]
+  ]},
+  { title: "Remote Management, KPIs & Workspace Focus", items: [
+    ["If everyone can build an app with AI now, what actually makes an app valuable?",
+     "Why domain expertise (knowing exact operational metrics, prep workflows, and KPIs) is the real moat now that code generation is cheap."],
+    ["I coded a terminal manager for ADHD brains. 100% Opensource.",
+     "Lightweight, distraction-free workspace organization to prevent context-switching fatigue when juggling multiple roles on one machine."],
+    ["Built a proactive study agent with Claude Code: the 3 parts that were actually hard",
+     "Lessons on state persistence and scheduled automated reporting/monitoring using Claude Code."]
+  ]},
+  { title: "Home Tinkering, Android & Retro Vibes", items: [
+    ["I reverse engineered my fridge then uploaded the firmware back to it",
+     "Using AI to hack and customize household smart appliance behavior."],
+    ["I'm making a flying taxi endless runner straight out of The Fifth Element. Supergreen?",
+     "Vibe-coding a 90s sci-fi retro 3D arcade game in the browser."],
+    ["I put an omni search bar in my Android home screen and app launcher",
+     "Building a custom Android launcher bar to trigger quick local actions and shortcuts."]
+  ]},
+  { title: "Breaking News & Tool Watch", items: [
+    ["Don't try to use REA (Reverse Engineering Assistant) with Claude",
+     "Warning on automated Anthropic account bans triggered by decompiled code or reverse-engineering prompts (and why users are routing those tasks to ChatGPT or local models)."],
+    ["Local & P2P LLM Alternatives (Ollama, DeepSeek, RunPod, Mesh-LLM)",
+     "Community shift toward local models and peer-to-peer distributed inference to bypass Claude rate limits and API token burn."]
+  ]}
+];
+
+const KEY = "digestTriage.v1";
+let state = {};
+try { state = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} };
+
+const main = document.getElementById("main"), nav = document.getElementById("nav");
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+DATA.forEach((sec, si) => {
+  const a = document.createElement("a");
+  a.href = "#s" + si;
+  a.innerHTML = (si + 1) + ". " + esc(sec.title.split(/[ ,&]/)[0]) + '<span class="n" id="n' + si + '"></span>';
+  nav.appendChild(a);
+
+  const el = document.createElement("section");
+  el.id = "s" + si;
+  el.innerHTML = "<h2>" + (si + 1) + ". " + esc(sec.title) + "</h2>";
+  sec.items.forEach((it, ii) => {
+    const id = si + "-" + ii;
+    const c = document.createElement("div");
+    c.className = "card"; c.id = "c" + id;
+    c.innerHTML =
+      "<h3>" + (si + 1) + "." + (ii + 1) + " " + esc(it[0]) + "</h3>" +
+      '<a class="find" target="_blank" rel="noopener" href="https://www.google.com/search?q=' +
+        encodeURIComponent(it[0]) + '">Find the post ↗</a>' +
+      '<p class="take"><b>Takeaway:</b> ' + esc(it[1]) + "</p>" +
+      '<div class="acts">' + ACTIONS.map(([k, l]) =>
+        '<button type="button" data-id="' + id + '" data-a="' + k + '" aria-pressed="false">' + l + "</button>").join("") + "</div>";
+    el.appendChild(c);
+  });
+  main.appendChild(el);
+});
+
+function render() {
+  document.querySelectorAll(".acts button").forEach(b => {
+    b.setAttribute("aria-pressed", String((state[b.dataset.id] || []).includes(b.dataset.a)));
+  });
+  document.querySelectorAll(".card").forEach(c => {
+    c.classList.toggle("deleted", (state[c.id.slice(1)] || []).includes("del"));
+  });
+  let total = 0, tagged = 0;
+  const counts = {};
+  DATA.forEach((sec, si) => {
+    let n = 0;
+    sec.items.forEach((_, ii) => {
+      total++;
+      const t = state[si + "-" + ii] || [];
+      if (t.length) { tagged++; n++; t.forEach(k => counts[k] = (counts[k] || 0) + 1); }
+    });
+    document.getElementById("n" + si).textContent = n + "/" + sec.items.length;
+  });
+  document.getElementById("sum").textContent = tagged + "/" + total + " tagged" +
+    (counts.dig ? " · " + counts.dig + " dig" : "") + (counts.save ? " · " + counts.save + " saved" : "");
+}
+
+main.addEventListener("click", e => {
+  const b = e.target.closest("button[data-a]"); if (!b) return;
+  const id = b.dataset.id, a = b.dataset.a;
+  let t = state[id] || [];
+  if (t.includes(a)) t = t.filter(x => x !== a);
+  else {
+    t = t.concat(a);
+    if (a === "del") t = ["del"];                 // delete is exclusive
+    else t = t.filter(x => x !== "del");
+  }
+  if (t.length) state[id] = t; else delete state[id];
+  save(); render();
+});
+
+function results() {
+  const label = Object.fromEntries(ACTIONS);
+  const lines = [], untagged = [];
+  DATA.forEach((sec, si) => sec.items.forEach((it, ii) => {
+    const t = state[si + "-" + ii] || [];
+    const ref = (si + 1) + "." + (ii + 1);
+    if (t.length) lines.push(ref + " " + it[0] + " — " + t.map(k => label[k]).join(", "));
+    else untagged.push(ref);
+  }));
+  const dig = [];
+  DATA.forEach((sec, si) => sec.items.forEach((it, ii) => {
+    if ((state[si + "-" + ii] || []).includes("dig")) dig.push((si + 1) + "." + (ii + 1) + " " + it[0]);
+  }));
+  return "MY TAGS\n" + (lines.join("\n") || "(none)") +
+    "\n\nDIG DEEPER NOW\n" + (dig.join("\n") || "(none)") +
+    (untagged.length ? "\n\nUNTAGGED: " + untagged.join(", ") : "");
+}
+
+const dlg = document.getElementById("dlg"), out = document.getElementById("out");
+async function copyText() {
+  out.select();
+  try { await navigator.clipboard.writeText(out.value); return true; }
+  catch (e) { try { return document.execCommand("copy"); } catch (e2) { return false; } }
+}
+document.getElementById("copy").onclick = async () => {
+  out.value = results();
+  dlg.showModal();
+  const ok = await copyText();
+  document.getElementById("copy2").textContent = ok ? "Copied ✓" : "Copy";
+};
+document.getElementById("copy2").onclick = async e => {
+  const ok = await copyText(); e.target.textContent = ok ? "Copied ✓" : "Copy failed";
+};
+document.getElementById("close").onclick = () => dlg.close();
+document.getElementById("reset").onclick = () => {
+  if (confirm("Clear all tags?")) { state = {}; save(); render(); }
+};
+render();
+</script>
+</body>
+</html>
