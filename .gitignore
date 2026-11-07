@@ -44,3 +44,6 @@ next-env.d.ts
 .bidlens-data/
 test-results/
 playwright-report/
+
+# Dreamcast player build cache (downloaded emulator core)
+/tools/dreamcast/.cache/

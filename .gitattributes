@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Generated single-file Dreamcast player
+tools/dreamcast/dreamcast.html -diff linguist-generated
