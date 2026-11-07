@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Standalone Dreamcast player (plain browser JS, built into one HTML file)
+    "tools/dreamcast/**",
   ]),
 ]);
 

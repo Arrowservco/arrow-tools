@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dreamcast Player</title>
+<meta name="description" content="Standalone Dreamcast emulator. Load your own game images and play in the browser.">
+<style>
+:root {
+  --bg: #0b0d14; --panel: #141826; --panel2: #1b2133; --line: #2a3250;
+  --fg: #e8ebf5; --dim: #8e97b5; --accent: #ff8a1f; --accent2: #ffb35c; --ok: #4fd18b; --bad: #ff5d6c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+button, select, input { font: inherit; color: inherit; }
+button { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #1a1000; font-weight: 600; }
+button.primary:hover { background: var(--accent2); }
+button.ghost { background: transparent; }
+[hidden] { display: none !important; }
+
+/* ---------- home ---------- */
+#home { height: 100%; overflow: auto; display: flex; flex-direction: column; align-items: center; padding: 40px 20px 28px; gap: 22px;
+  background: radial-gradient(1200px 600px at 50% -10%, #1b2446 0%, transparent 60%), var(--bg); }
+.brand { display: flex; align-items: center; gap: 14px; margin-top: 2vh; }
+.swirl { width: 46px; height: 46px; border-radius: 50%; background: conic-gradient(from 20deg, var(--accent), #ff4d2e, var(--accent2), var(--accent)); position: relative; }
+.swirl::after { content: ""; position: absolute; inset: 11px; border-radius: 50%; background: var(--bg); }
+.brand h1 { font-size: 30px; margin: 0; letter-spacing: .3px; }
+.tag { color: var(--dim); margin: 0; text-align: center; max-width: 560px; }
+#drop { width: min(680px, 100%); border: 2px dashed var(--line); border-radius: 18px; padding: 44px 24px; text-align: center; background: rgba(20,24,38,.6); transition: .15s; }
+#drop.over { border-color: var(--accent); background: rgba(255,138,31,.08); transform: scale(1.01); }
+#drop h2 { margin: 0 0 6px; font-size: 20px; }
+#drop p { margin: 4px 0; color: var(--dim); }
+.row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+.chips { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+.chip { font-size: 12px; padding: 2px 9px; border: 1px solid var(--line); border-radius: 99px; color: var(--dim); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; width: min(680px, 100%); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.card h3 { margin: 0 0 4px; font-size: 14px; color: var(--accent2); }
+.card p { margin: 0; color: var(--dim); font-size: 13px; }
+.foot { color: var(--dim); font-size: 12px; text-align: center; max-width: 680px; }
+.foot a { color: var(--accent2); }
+#compat { width: min(680px, 100%); background: #3a2a10; border: 1px solid #7a5a1c; color: #ffd9a0; border-radius: 10px; padding: 10px 14px; font-size: 13px; }
+
+/* ---------- stage ---------- */
+#stage { position: fixed; inset: 0; background: #000; display: flex; align-items: center; justify-content: center; }
+#screen { position: relative; }
+#screen canvas { display: block; width: 100%; height: 100%; }
+#stage.pixel #screen canvas { image-rendering: pixelated; }
+#hud { position: absolute; top: 10px; left: 12px; font: 12px/1.3 ui-monospace, Menlo, Consolas, monospace; color: #fff; background: rgba(0,0,0,.55); padding: 3px 8px; border-radius: 6px; pointer-events: none; }
+#toolbar { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 6px; padding: 8px; background: rgba(15,18,30,.92); border: 1px solid var(--line); border-radius: 14px; transition: opacity .25s, transform .25s; backdrop-filter: blur(6px); max-width: calc(100vw - 20px); flex-wrap: wrap; justify-content: center; }
+#toolbar.idle { opacity: 0; pointer-events: none; transform: translate(-50%, 12px); }
+#toolbar button { padding: 7px 11px; font-size: 13px; }
+#stage.idle { cursor: none; }
+#toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(15,18,30,.95); border: 1px solid var(--line); padding: 8px 14px; border-radius: 10px; font-size: 13px; z-index: 60; max-width: 80vw; }
+#pausedBadge { position: absolute; font-size: 22px; letter-spacing: 6px; color: #fff; background: rgba(0,0,0,.55); padding: 8px 22px; border-radius: 10px; pointer-events: none; }
+
+/* ---------- overlays / panel ---------- */
+.overlay { position: fixed; inset: 0; z-index: 50; background: rgba(5,7,12,.82); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; width: min(520px, 100%); max-height: 86vh; overflow: auto; }
+.modal h3 { margin: 0 0 8px; }
+.modal .list { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
+.modal .list button { text-align: left; }
+.spinner { width: 34px; height: 34px; border-radius: 50%; border: 4px solid var(--line); border-top-color: var(--accent); animation: spin 0.9s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } #drop, #toolbar { transition: none; } }
+
+#panel { position: fixed; top: 0; right: 0; bottom: 0; width: min(460px, 100vw); z-index: 40; background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; box-shadow: -12px 0 40px rgba(0,0,0,.4); }
+#panel header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+#panel header h2 { margin: 0; font-size: 16px; }
+#tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+#tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 6px 6px 0 0; background: transparent; padding: 7px 11px; font-size: 13px; color: var(--dim); white-space: nowrap; }
+#tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+#tabbody { padding: 14px 16px 24px; overflow: auto; flex: 1; }
+.field { display: grid; grid-template-columns: 1fr minmax(120px, 190px); gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+.field label { font-size: 13px; }
+.field small { display: block; color: var(--dim); font-size: 11.5px; }
+select, input[type=range] { width: 100%; }
+select { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; }
+.keybtn { min-width: 110px; padding: 4px 8px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; }
+.keybtn.listening { border-color: var(--accent); color: var(--accent2); }
+.sect { margin: 16px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--accent2); }
+.note { color: var(--dim); font-size: 12.5px; margin: 6px 0; }
+.pill { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 99px; background: var(--panel2); border: 1px solid var(--line); }
+.pill.ok { color: var(--ok); border-color: #2c6a4d; }
+#log { font: 11.5px/1.35 ui-monospace, Menlo, Consolas, monospace; white-space: pre-wrap; background: #080a10; border: 1px solid var(--line); border-radius: 8px; padding: 8px; height: 52vh; overflow: auto; }
+#log .err { color: #ff9aa4; } #log .warn { color: #ffd28a; }
+.pad { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0 18px; }
+</style>
+</head>
+<body>
+
+<section id="home" hidden>
+  <div class="brand"><div class="swirl" aria-hidden="true"></div><h1>Dreamcast Player</h1></div>
+  <p class="tag">A standalone Dreamcast emulator in one file. Load a game image you own and play &mdash; nothing is uploaded anywhere.</p>
+  <div id="compat" hidden></div>
+  <div id="drop" tabindex="0" role="button" aria-label="Drop game files here or press Enter to browse">
+    <h2>Drop your game here</h2>
+    <p>Drag in a game image, or the whole game folder.</p>
+    <p>For <b>.gdi</b> games, select the .gdi <i>and</i> all of its track files together.</p>
+    <div class="row">
+      <button class="primary" id="btnFiles">Choose game files&hellip;</button>
+      <button id="btnFolder">Choose a folder&hellip;</button>
+    </div>
+    <div class="chips" aria-label="Supported formats">
+      <span class="chip">.gdi + tracks</span><span class="chip">.cdi</span><span class="chip">.chd</span><span class="chip">.cue + .bin</span><span class="chip">.iso</span><span class="chip">.elf</span><span class="chip">.zip</span>
+    </div>
+  </div>
+  <div class="cards">
+    <div class="card"><h3>Controls</h3><p>Keyboard or any USB / Bluetooth gamepad (plug in, press a button). Remap keys in Settings.</p></div>
+    <div class="card"><h3>Saves</h3><p>Memory-card (VMU) saves and save states are kept in this browser automatically.</p></div>
+    <div class="card"><h3>BIOS (optional)</h3><p id="biosStatus">Built-in HLE BIOS works for many games. Add real BIOS files in Settings for best compatibility.</p><div class="row" style="justify-content:flex-start;margin-top:10px"><button id="btnBiosHome" class="ghost">Add BIOS&hellip;</button></div></div>
+  </div>
+  <p class="foot">Runs the <a href="https://github.com/flyinghead/flycast" target="_blank" rel="noopener">Flycast</a> emulator core (GPL-2.0+), compiled to WebAssembly (__CORE_VERSION__). Bring your own legally-obtained game images; none are included.
+  <a href="#" id="aboutLink">Licence &amp; credits</a></p>
+</section>
+
+<section id="stage" hidden>
+  <div id="screen"><canvas id="gl"></canvas><canvas id="sw" hidden></canvas></div>
+  <div id="hud" hidden></div>
+  <div id="pausedBadge" hidden>PAUSED</div>
+  <div id="toolbar" role="toolbar" aria-label="Emulator controls">
+    <button id="tbPause" title="Pause / resume (Esc)">Pause</button>
+    <button id="tbReset" title="Reset the console">Reset</button>
+    <button id="tbSave" title="Save state (F5)">Save state</button>
+    <button id="tbLoad" title="Load state (F8)">Load state</button>
+    <button id="tbShot" title="Screenshot (F12)">Screenshot</button>
+    <button id="tbMute" title="Mute (M)">Mute</button>
+    <button id="tbFull" title="Fullscreen (F)">Fullscreen</button>
+    <button id="tbSettings" title="Settings">Settings</button>
+    <button id="tbEject" title="Close this game">Eject</button>
+  </div>
+</section>
+
+<div id="loading" class="overlay" hidden><div class="modal" style="text-align:center"><div class="spinner" aria-hidden="true"></div><div id="loadingText" role="status">Loading&hellip;</div></div></div>
+<div id="chooser" class="overlay" hidden><div class="modal"><h3>Which game should I start?</h3><div class="list" id="chooserList"></div><button id="chooserCancel" class="ghost">Cancel</button></div></div>
+<div id="errorBox" class="overlay" hidden><div class="modal"><h3 id="errorTitle">Something went wrong</h3><p id="errorText" style="white-space:pre-wrap"></p><div class="row" style="justify-content:flex-end"><button id="errorLog">View log</button><button class="primary" id="errorOk">OK</button></div></div></div>
+<div id="soundGate" class="overlay" hidden><div class="modal" style="text-align:center"><h3>Click to enable sound</h3><p class="note">Your browser needs a click before it will play audio.</p><button class="primary" id="soundOk">Enable sound</button></div></div>
+<div id="toast" hidden role="status"></div>
+
+<aside id="panel" hidden aria-label="Settings">
+  <header><h2>Settings</h2><button id="panelClose" class="ghost" aria-label="Close settings">Close</button></header>
+  <div id="tabs" role="tablist"></div>
+  <div id="tabbody"></div>
+</aside>
+
+<input type="file" id="fileInput" multiple hidden>
+<input type="file" id="dirInput" webkitdirectory hidden>
+<input type="file" id="biosInput" multiple hidden>
+<input type="file" id="saveInput" multiple hidden accept=".bin,.vms,.dci,.json,.state">
+
+<script type="application/octet-stream" id="core-glue">__CORE_GLUE__</script>
+<script type="application/octet-stream" id="core-wasm">__CORE_WASM__</script>
+<script>
+/*__APP__*/
+</script>
+</body>
+</html>
