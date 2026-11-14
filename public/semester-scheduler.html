@@ -47,7 +47,7 @@ button.ghost:hover{color:var(--warn)}
 .sem-h{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .sem-h .q{flex:0 0 150px}
 .list{display:grid;gap:8px}
-.item{display:grid;grid-template-columns:1fr 110px auto;gap:8px;align-items:center}
+.item{display:grid;grid-template-columns:120px 1fr 90px auto;gap:8px;align-items:center}
 .item input[type=number]{text-align:right}
 .sub{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .sub .lbl{display:flex;gap:8px;align-items:center}
@@ -72,7 +72,7 @@ tr.holiday td{color:var(--hol);font-style:italic}
 [contenteditable]{cursor:text}
 [contenteditable]:hover{background:color-mix(in srgb,var(--accent) 6%,transparent)}
 .example{font-size:.75rem;font-weight:600;color:var(--clinic);text-transform:uppercase;letter-spacing:.06em}
-@media (max-width:560px){.item{grid-template-columns:1fr 80px auto}.sem-h .q{flex:1 1 100%}}
+@media (max-width:560px){.item{grid-template-columns:96px 1fr 64px auto}.sem-h .q{flex:1 1 100%}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -101,7 +101,7 @@ tr.holiday td{color:var(--hol);font-style:italic}
 
   <section class="step">
     <div class="step-h"><span class="num">STEP 2</span><h2>Semesters, classes and clinics</h2></div>
-    <p class="hint" style="margin:0">Set how many weeks each semester runs, then list its required classes and clinics with the number of sessions each needs (classes are usually 15, sometimes 20).</p>
+    <p class="hint" style="margin:0">Set how many weeks each semester runs, then list its required classes and clinics by course number (for example RAD 401) and how many units each has (usually 15, sometimes 20). Each meeting is labelled with its unit: RAD 401 U1, RAD 401 U2, and so on.</p>
     <div id="sems" style="display:grid;gap:14px"></div>
   </section>
 
@@ -124,15 +124,15 @@ tr.holiday td{color:var(--hol);font-style:italic}
 <script>
 const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const DOWL=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const KEY="semsched.v1";
+const KEY="semsched.v2";
 const $=s=>document.querySelector(s);
 
 const SAMPLE={
   example:true,start:"2027-01-11",nsem:2,brk:1,maxc:3,dow:[1,2,3,4,5],
   hol:"2027-01-18 MLK Day\n2027-03-15 to 2027-03-19 Spring Break",
   sems:[
-    {weeks:16,classes:[{n:"Anatomy & Physiology I",s:15},{n:"Intro to Massage Theory",s:20},{n:"Ethics & Professional Practice",s:15},{n:"Kinesiology I",s:15}],clinics:[{n:"Student Clinic",s:6}]},
-    {weeks:16,classes:[{n:"Anatomy & Physiology II",s:15},{n:"Pathology",s:15},{n:"Kinesiology II",s:15},{n:"Business Practices",s:15}],clinics:[{n:"Student Clinic",s:8},{n:"Sports Event Clinic",s:2}]}
+    {weeks:16,classes:[{n:"RAD 401",t:"Intro to Radiography",s:15},{n:"RAD 402",t:"Patient Care",s:15},{n:"RAD 403",t:"Radiographic Procedures I",s:20},{n:"RAD 404",t:"Radiation Physics",s:15}],clinics:[{n:"RAD 410",t:"Clinical Practicum I",s:6}]},
+    {weeks:16,classes:[{n:"RAD 411",t:"Radiographic Procedures II",s:20},{n:"RAD 412",t:"Image Production",s:15},{n:"RAD 413",t:"Radiation Protection",s:15},{n:"RAD 414",t:"Radiographic Pathology",s:15}],clinics:[{n:"RAD 420",t:"Clinical Practicum II",s:10}]}
   ]};
 
 let state=load()||structuredClone(SAMPLE);
@@ -147,7 +147,7 @@ function renderForm(){
   $("#dow").innerHTML=[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" id="dow${d}" value="${d}" ${state.dow.includes(d)?"checked":""}>${DOW[d]}</label>`).join("");
   renderSems();
 }
-function blankSem(){const p=state.sems[state.sems.length-1];return{weeks:p?p.weeks:16,classes:[{n:"",s:15}],clinics:[]}}
+function blankSem(){const p=state.sems[state.sems.length-1];return{weeks:p?p.weeks:16,classes:[{n:"",t:"",s:15}],clinics:[]}}
 function renderSems(){
   while(state.sems.length<state.nsem)state.sems.push(blankSem());
   state.sems.length=state.nsem;
@@ -155,16 +155,17 @@ function renderSems(){
    <div class="sem" data-i="${i}">
      <div class="sem-h"><h3>Semester ${i+1}${state.example&&i===0?' <span class="example">example data</span>':''}</h3>
        <div class="q"><label for="wk${i}">Weeks</label><input type="number" id="wk${i}" min="1" max="52" value="${s.weeks}" data-k="weeks"></div></div>
-     ${listHTML(i,"classes","Required classes","Class name","var(--accent)")}
-     ${listHTML(i,"clinics","Required clinics (full day each)","Clinic name","var(--clinic)")}
+     ${listHTML(i,"classes","Required classes","RAD 401","var(--accent)")}
+     ${listHTML(i,"clinics","Required clinics (full day each)","RAD 410","var(--clinic)")}
    </div>`).join("");
 }
 function listHTML(i,kind,title,ph,col){
   const rows=state.sems[i][kind].map((it,j)=>`
-    <div class="item"><input id="${kind}${i}_${j}n" aria-label="${ph}" placeholder="${ph}" value="${esc(it.n)}" data-kind="${kind}" data-j="${j}" data-f="n">
+    <div class="item"><input id="${kind}${i}_${j}n" aria-label="Course number" placeholder="${ph}" value="${esc(it.n)}" data-kind="${kind}" data-j="${j}" data-f="n">
+    <input id="${kind}${i}_${j}t" aria-label="Course title (optional)" placeholder="Title (optional)" value="${esc(it.t||"")}" data-kind="${kind}" data-j="${j}" data-f="t">
     <input type="number" id="${kind}${i}_${j}s" aria-label="Sessions" min="1" max="200" value="${it.s}" data-kind="${kind}" data-j="${j}" data-f="s" list="sesslist">
     <button type="button" class="ghost" data-del="${kind}" data-j="${j}" aria-label="Remove">✕</button></div>`).join("");
-  return `<div class="list"><div class="sub"><span class="lbl"><i class="dot" style="background:${col}"></i>${title}</span><span class="hint">Sessions</span></div>${rows||'<span class="hint">None</span>'}
+  return `<div class="list"><div class="sub"><span class="lbl"><i class="dot" style="background:${col}"></i>${title}</span><span class="hint">Number · title · units</span></div>${rows||'<span class="hint">None</span>'}
    <div><button type="button" data-add="${kind}">+ Add ${kind==="classes"?"class":"clinic"}</button></div></div>`;
 }
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
@@ -184,13 +185,13 @@ $("#f").addEventListener("input",e=>{
 $("#sems").addEventListener("input",e=>{
   const t=e.target,i=+t.closest(".sem").dataset.i,s=state.sems[i];
   if(t.dataset.k==="weeks")s.weeks=Math.max(1,+t.value||1);
-  if(t.dataset.kind){const it=s[t.dataset.kind][+t.dataset.j];if(t.dataset.f==="n")it.n=t.value;else it.s=Math.max(1,+t.value||1);}
+  if(t.dataset.kind){const it=s[t.dataset.kind][+t.dataset.j];if(t.dataset.f==="n")it.n=t.value;else if(t.dataset.f==="t")it.t=t.value;else it.s=Math.max(1,+t.value||1);}
   save();
 });
 $("#sems").addEventListener("click",e=>{
   const t=e.target.closest("button");if(!t)return;
   const i=+t.closest(".sem").dataset.i,s=state.sems[i];
-  if(t.dataset.add){s[t.dataset.add].push({n:"",s:t.dataset.add==="classes"?15:1});renderSems();
+  if(t.dataset.add){s[t.dataset.add].push({n:"",t:"",s:t.dataset.add==="classes"?15:1});renderSems();
     const k=t.dataset.add,j=s[k].length-1;document.getElementById(`${k}${i}_${j}n`)?.focus();}
   if(t.dataset.del){s[t.dataset.del].splice(+t.dataset.j,1);renderSems();}
   save();
@@ -235,15 +236,15 @@ function build(){
       all.push(row); if(!row.holiday)days.push(row);
     }
     const D=days.length;
-    const classes=sem.classes.filter(c=>c.n.trim()).map((c,ci)=>({...c,n:c.n.trim(),ci}));
-    const clinics=sem.clinics.filter(c=>c.n.trim()).map(c=>({...c,n:c.n.trim()}));
+    const classes=sem.classes.filter(c=>c.n.trim()).map((c,ci)=>({...c,n:c.n.trim(),t:(c.t||"").trim(),ci}));
+    const clinics=sem.clinics.filter(c=>c.n.trim()).map(c=>({...c,n:c.n.trim(),t:(c.t||"").trim()}));
     // clinics: round-robin order, spread evenly
     const seq=[],cnt=clinics.map(()=>0);let more=true;
-    while(more){more=false;clinics.forEach((c,k)=>{if(cnt[k]<c.s){cnt[k]++;seq.push({n:c.n,k:cnt[k],of:c.s});more=true}})}
+    while(more){more=false;clinics.forEach((c,k)=>{if(cnt[k]<c.s){cnt[k]++;seq.push({n:c.n,t:c.t,k:cnt[k],of:c.s});more=true}})}
     const C=seq.length;let unplaced=[];
     seq.forEach((c,j)=>{
       const k=nearestFree(D,Math.floor((j+.5)*D/C),x=>!days[x].clinic);
-      if(k<0)unplaced.push(`${c.n} (${c.k}/${c.of})`);else days[k].clinic=c;
+      if(k<0)unplaced.push(`${c.n} U${c.k}`);else days[k].clinic=c;
     });
     // classes: spread each across the non-clinic days
     const free=days.filter(d=>!d.clinic),R=free.length;
@@ -253,8 +254,8 @@ function build(){
         const ideal=Math.floor((j+.5)*R/c.s);
         let k=nearestFree(R,ideal,x=>free[x].slots.length<state.maxc&&!free[x].slots.some(s=>s.ci===c.ci));
         if(k<0)k=nearestFree(R,ideal,x=>free[x].slots.length<state.maxc);
-        if(k<0)unplaced.push(`${c.n} (${j+1}/${c.s})`);
-        else free[k].slots.push({n:c.n,ci:c.ci,of:c.s});
+        if(k<0)unplaced.push(`${c.n} U${j+1}`);
+        else free[k].slots.push({n:c.n,t:c.t,ci:c.ci,of:c.s});
       }
     });
     // number sessions chronologically, sort slots by class order
@@ -262,7 +263,7 @@ function build(){
     free.forEach(d=>{d.slots.sort((a,b)=>a.ci-b.ci);d.slots.forEach(s=>{seen[s.ci]=(seen[s.ci]||0)+1;s.k=seen[s.ci]})});
     const placed={};classes.forEach(c=>placed[c.n]=seen[c.ci]||0);
     out.push({si,start:semStart,end:addDays(endEx,-1),weeks:sem.weeks,rows:all,classes,clinics,placed,
-      clinicPlaced:clinics.map(c=>({n:c.n,s:c.s,p:seq.filter((x,j)=>x.n===c.n&&days.some(d=>d.clinic===x)).length})),
+      clinicPlaced:clinics.map(c=>({n:c.n,t:c.t,s:c.s,p:seq.filter((x,j)=>x.n===c.n&&days.some(d=>d.clinic===x)).length})),
       D,C,need:C+Math.ceil(classes.reduce((a,c)=>a+c.s,0)/state.maxc),unplaced});
     semStart=addDays(endEx,state.brk*7);
   });
@@ -282,16 +283,16 @@ function renderSchedule(res){
       const ws=r.week!==lastWeek?" weekstart":"";lastWeek=r.week;
       const head=`<td>${fmt(r.date)}</td><td>${DOWL[r.date.getDay()]}</td><td>${r.week}</td>`;
       if(r.holiday) h+=`<tr class="holiday${ws}">${head}<td class="slot" colspan="${M}" contenteditable="true">No class: ${esc(r.holiday)}</td></tr>`;
-      else if(r.clinic) h+=`<tr class="clinic${ws}">${head}<td class="slot" colspan="${M}" contenteditable="true">CLINIC (all day): ${esc(r.clinic.n)} ${r.clinic.k}/${r.clinic.of}</td></tr>`;
+      else if(r.clinic) h+=`<tr class="clinic${ws}">${head}<td class="slot" colspan="${M}" contenteditable="true">CLINIC (all day): ${esc(r.clinic.n)} U${r.clinic.k}</td></tr>`;
       else h+=`<tr class="${ws}">${head}${Array.from({length:M},(_,i)=>{const x=r.slots[i];
-        return `<td class="slot" contenteditable="true">${x?`<span class="chip" style="--c:${hue(x.ci)}">${esc(x.n)} ${x.k}/${x.of}</span>`:""}</td>`}).join("")}</tr>`;
+        return `<td class="slot" contenteditable="true">${x?`<span class="chip" style="--c:${hue(x.ci)}" title="${esc(x.t)} · unit ${x.k} of ${x.of}">${esc(x.n)} U${x.k}</span>`:""}</td>`}).join("")}</tr>`;
     });
   });
   $("#tbl").innerHTML=h+"</tbody>";
   $("#summary").innerHTML=res.map(s=>{
     const ok=!s.unplaced.length;
-    const li=[...s.classes.map(c=>`<li>${esc(c.n)}: ${s.placed[c.n]}/${c.s} sessions</li>`),
-              ...s.clinicPlaced.map(c=>`<li>${esc(c.n)} (clinic): ${c.p}/${c.s} days</li>`)].join("");
+    const li=[...s.classes.map(c=>`<li>${esc(c.n)}${c.t?" "+esc(c.t):""}: U1–U${s.placed[c.n]} of ${c.s} placed</li>`),
+              ...s.clinicPlaced.map(c=>`<li>${esc(c.n)}${c.t?" "+esc(c.t):""} (clinic): ${c.p}/${c.s} days</li>`)].join("");
     return `<div class="sumcard"><div class="sub"><h3>Semester ${s.si+1}</h3><span class="pill ${ok?"ok":"bad"}">${ok?"Everything fits":"Doesn't fit"}</span></div>
       <span class="hint">${s.D} school days available · ${s.C} clinic days · needs at least ${s.need} days</span>
       ${li?`<ul>${li}</ul>`:'<span class="hint">No classes or clinics listed.</span>'}
