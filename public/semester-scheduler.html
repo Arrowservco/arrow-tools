@@ -3,345 +3,456 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap">
 <style>
-/* Layout: questionnaire on top (numbered steps = real order), generated day-by-day grid below. */
+/* Layout: questionnaire (numbered steps = real order) above a week-by-week grid that mirrors the program-hours workbook. */
 :root{
   --bg:#f5f7f8; --surface:#ffffff; --surface2:#eef2f4; --fg:#16212a; --muted:#5a6873;
-  --line:#d6dee3; --accent:#0f6e7a; --accent-fg:#ffffff; --clinic:#b4580f; --warn:#a33a1f; --ok:#2f7a3c;
-  --hol:#7a6b8f;
+  --line:#d6dee3; --accent:#0f6e7a; --accent-fg:#ffffff; --hi:#fff3a3; --hi-fg:#5c4a00; --week:#ffe9a8;
+  --warn:#a33a1f; --ok:#2f7a3c;
   --f-display:"Space Grotesk",system-ui,sans-serif; --f-body:"Inter",system-ui,sans-serif;
   --r:8px;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0f161b; --surface:#16212a; --surface2:#1d2a34; --fg:#e4ecf0; --muted:#94a5b0;
-  --line:#2b3a45; --accent:#4fb7c4; --accent-fg:#06232a; --clinic:#f0a35c; --warn:#f08a6c; --ok:#7fcf8b; --hol:#b8a7d1; color-scheme:dark}}
+  --line:#2b3a45; --accent:#4fb7c4; --accent-fg:#06232a; --hi:#4a4210; --hi-fg:#ffe98a; --week:#3a3418;
+  --warn:#f08a6c; --ok:#7fcf8b; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0f161b; --surface:#16212a; --surface2:#1d2a34; --fg:#e4ecf0; --muted:#94a5b0;
-  --line:#2b3a45; --accent:#4fb7c4; --accent-fg:#06232a; --clinic:#f0a35c; --warn:#f08a6c; --ok:#7fcf8b; --hol:#b8a7d1; color-scheme:dark}
+  --line:#2b3a45; --accent:#4fb7c4; --accent-fg:#06232a; --hi:#4a4210; --hi-fg:#ffe98a; --week:#3a3418;
+  --warn:#f08a6c; --ok:#7fcf8b; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.5}
-.wrap{max-width:1040px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:22px}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:22px}
 h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
 h1{font-size:1.9rem;letter-spacing:-.01em}
 h2{font-size:1.2rem}
-h3{font-size:1rem}
-.lede{color:var(--muted);margin:6px 0 0;max-width:65ch}
+h3{font-size:1.02rem}
+.lede{color:var(--muted);margin:6px 0 0;max-width:68ch}
 .step{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:14px;min-width:0}
 .step-h{display:flex;gap:10px;align-items:baseline}
 .num{font-family:var(--f-display);color:var(--accent);font-weight:700;font-size:.85rem;letter-spacing:.06em}
-.q{display:grid;gap:6px}
-.q label,.lbl{font-weight:600;font-size:.92rem}
+.q{display:grid;gap:6px;align-content:start}
+.q label,.lbl{font-weight:600;font-size:.9rem}
 .hint{color:var(--muted);font-size:.83rem}
 .row{display:flex;flex-wrap:wrap;gap:14px}
-.row>.q{flex:1 1 180px;min-width:0}
-input,select,textarea{font:inherit;color:var(--fg);background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%}
-textarea{min-height:84px;resize:vertical;font-size:.9rem}
+.row>.q{flex:1 1 160px;min-width:0}
+input,select,textarea{font:inherit;color:var(--fg);background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+textarea{min-height:120px;resize:vertical;font-size:.88rem;font-family:ui-monospace,Menlo,Consolas,monospace}
 input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,[contenteditable]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.days{display:flex;flex-wrap:wrap;gap:6px}
-.days label{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-weight:500;cursor:pointer}
-.days input{width:auto}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips label{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:3px 11px;font-weight:500;font-size:.88rem;cursor:pointer}
+.chips input{width:auto}
 button{font:inherit;font-weight:600;border-radius:6px;border:1px solid var(--line);background:var(--surface2);color:var(--fg);padding:8px 14px;cursor:pointer}
 button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
 button.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:6px 8px}
 button.ghost:hover{color:var(--warn)}
-.sem{border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:12px;background:var(--bg)}
-.sem-h{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
-.sem-h .q{flex:0 0 150px}
+.sem{border:1px solid var(--line);border-radius:var(--r);padding:14px;display:grid;gap:14px;background:var(--bg)}
+.sem-top{display:flex;flex-wrap:wrap;gap:12px}
+.sem-top .q{flex:1 1 130px}
+.labels{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.labels .q label{font-weight:500;font-size:.8rem;color:var(--muted)}
 .list{display:grid;gap:8px}
-.item{display:grid;grid-template-columns:120px 1fr 90px auto;gap:8px;align-items:center}
+.item{display:grid;grid-template-columns:minmax(0,1fr) 84px 110px auto;gap:8px;align-items:center}
 .item input[type=number]{text-align:right}
-.sub{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.sub .lbl{display:flex;gap:8px;align-items:center}
-.dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+.colh{display:grid;grid-template-columns:minmax(0,1fr) 84px 110px 34px;gap:8px;font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .status{font-size:.88rem;color:var(--muted)}
-.summary{display:grid;gap:10px}
-.sumcard{display:grid;gap:6px;border:1px solid var(--line);border-radius:var(--r);padding:12px;background:var(--bg)}
-.sumcard ul{margin:0;padding-left:18px;font-size:.9rem}
-.pill{display:inline-block;font-size:.75rem;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid currentColor}
+.summary{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.sumcard{display:grid;gap:6px;align-content:start;border:1px solid var(--line);border-radius:var(--r);padding:12px;background:var(--bg);min-width:0}
+.sumcard ul{margin:0;padding-left:18px;font-size:.86rem}
+.pill{display:inline-block;font-size:.72rem;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
 .pill.ok{color:var(--ok)} .pill.bad{color:var(--warn)}
+.sub{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.semgrid{display:grid;gap:8px}
+.semgrid h3{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.semgrid h3 small{font-family:var(--f-body);font-weight:500;color:var(--muted);font-size:.85rem}
 .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
-table{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
-th,td{border-bottom:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top;white-space:nowrap}
-th{background:var(--surface2);font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);position:sticky;top:0}
-td.slot{min-width:170px;white-space:normal}
-tr.semrow td{background:var(--accent);color:var(--accent-fg);font-family:var(--f-display);font-weight:600;letter-spacing:.02em}
-tr.weekstart td{border-top:2px solid var(--line)}
-tr.clinic td.slot{color:var(--clinic);font-weight:600;background:color-mix(in srgb,var(--clinic) 10%,transparent)}
-tr.holiday td{color:var(--hol);font-style:italic}
-.chip{display:inline-block;padding:1px 0 1px 8px;border-left:3px solid var(--c,var(--accent))}
-[contenteditable]{cursor:text}
-[contenteditable]:hover{background:color-mix(in srgb,var(--accent) 6%,transparent)}
-.example{font-size:.75rem;font-weight:600;color:var(--clinic);text-transform:uppercase;letter-spacing:.06em}
-@media (max-width:560px){.item{grid-template-columns:96px 1fr 64px auto}.sem-h .q{flex:1 1 100%}}
+table{border-collapse:collapse;width:100%;font-size:.8rem;font-variant-numeric:tabular-nums}
+th,td{border:1px solid var(--line);padding:0;text-align:center;vertical-align:top}
+th{background:var(--surface2);font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 4px;position:sticky;top:0;z-index:1}
+td.wk{background:var(--week);font-weight:700;padding:6px;white-space:nowrap;vertical-align:middle}
+td.day{min-width:118px}
+td.day .dt{font-weight:700;padding:3px 4px;border-bottom:1px solid var(--line);background:var(--surface2)}
+td.day .ln{min-height:1.6em;padding:2px 4px;font-weight:600;white-space:pre-wrap}
+td.day .ln+.ln{border-top:1px dashed var(--line)}
+td.day .ln.hi{background:var(--hi);color:var(--hi-fg)}
+td.day.out{background:repeating-linear-gradient(135deg,transparent 0 6px,var(--surface2) 6px 8px)}
+td.hr{padding:4px 6px;white-space:nowrap;vertical-align:middle;min-width:48px}
+td.hr.tot{background:var(--hi);color:var(--hi-fg);font-weight:700}
+.ln[contenteditable]{cursor:text}
+.ln[contenteditable]:hover{box-shadow:inset 0 0 0 1px var(--accent)}
+.src{font-size:.75rem;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.06em}
+@media (max-width:560px){.item{grid-template-columns:minmax(0,1fr) 64px 92px auto}.colh{grid-template-columns:minmax(0,1fr) 64px 92px 30px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
 <div class="wrap">
   <header>
     <h1>Semester Scheduler</h1>
-    <p class="lede">Fill in the questions, then build the schedule. Clinics take a whole day; classes share a day up to the limit you set. You can click any cell in the finished schedule to edit it before you export.</p>
+    <p class="lede">Answer the questions and it lays out each semester week by week, in the same layout as the RAD2805 program-hours workbook: one sheet per semester, up to 3 lines per day, and class, lab and clinic hours with running totals. Click any line in the grid to change it before you download.</p>
   </header>
 
   <form id="f" class="step" autocomplete="off">
-    <div class="step-h"><span class="num">STEP 1</span><h2>Calendar</h2></div>
+    <div class="step-h"><span class="num">STEP 1</span><h2>Program calendar</h2></div>
     <div class="row">
       <div class="q"><label for="start">What is the first day of Semester 1?</label><input type="date" id="start" required></div>
-      <div class="q"><label for="nsem">How many semesters?</label><input type="number" id="nsem" min="1" max="8" value="2"></div>
-      <div class="q"><label for="brk">Break between semesters (weeks)</label><input type="number" id="brk" min="0" max="12" value="1"></div>
-      <div class="q"><label for="maxc">Max classes per day</label><input type="number" id="maxc" min="1" max="6" value="3"></div>
+      <div class="q"><label for="nsem">How many semesters?</label><input type="number" id="nsem" min="1" max="8" value="4"></div>
+      <div class="q"><label for="brk">Weeks off between semesters</label><input type="number" id="brk" min="0" max="12" value="0"></div>
     </div>
-    <div class="q"><span class="lbl">Which days of the week are school days?</span>
-      <div class="days" id="dow"></div>
+    <div class="row">
+      <div class="q"><label for="maxc">Lines per day (max classes)</label><input type="number" id="maxc" min="1" max="5" value="3"></div>
+      <div class="q"><label for="hc">Hours per class session</label><input type="number" id="hc" min="0" max="12" step="0.5" value="3"></div>
+      <div class="q"><label for="hk">Hours per clinic day</label><input type="number" id="hk" min="0" max="16" step="0.5" value="8"></div>
+      <div class="q"><label for="h0">Hours already completed</label><input type="number" id="h0" min="0" step="1" value="0"></div>
     </div>
-    <div class="q"><label for="hol">Days off (optional)</label>
-      <textarea id="hol" placeholder="2027-01-18 MLK Day&#10;2027-03-15 to 2027-03-19 Spring Break"></textarea>
-      <span class="hint">One per line: a date, or a range with “to”, then an optional label. Nothing is scheduled on these days.</span>
+    <div class="q"><span class="lbl">School days</span><div class="chips" id="dow"></div></div>
+    <div class="q"><label for="hol">Holidays and days off</label>
+      <textarea id="hol" spellcheck="false"></textarea>
+      <span class="hint">One per line: a date or a range with “to”, then the label that should show in the grid. Nothing else is scheduled on these days.</span>
     </div>
   </form>
 
   <section class="step">
-    <div class="step-h"><span class="num">STEP 2</span><h2>Semesters, classes and clinics</h2></div>
-    <p class="hint" style="margin:0">Set how many weeks each semester runs, then list its required classes and clinics by course number (for example RAD 401) and how many units each has (usually 15, sometimes 20). Each meeting is labelled with its unit: RAD 401 U1, RAD 401 U2, and so on.</p>
+    <div class="step-h"><span class="num">STEP 2</span><h2>Semesters</h2></div>
+    <p class="hint" style="margin:0">For each semester: how many weeks, how many clinic days (numbered Clinic 1, Clinic 2…) and which weekdays they fall on, then the required classes. Each class meets on its day every week as RAD 101 U1, U2… until all its units are done; leftover units are filled in on open days near the end.</p>
     <div id="sems" style="display:grid;gap:14px"></div>
   </section>
 
   <section class="step">
-    <div class="step-h"><span class="num">STEP 3</span><h2>Build and export</h2></div>
+    <div class="step-h"><span class="num">STEP 3</span><h2>Build and download</h2></div>
     <div class="actions">
       <button class="primary" id="build" type="button">Build schedule</button>
       <button id="xlsx" type="button">Download Excel</button>
-      <button id="csv" type="button">Download CSV</button>
       <button id="copy" type="button">Copy for Sheets</button>
+      <button id="reset" type="button" class="ghost">Reload RAD2805 framework</button>
       <span class="status" id="status" role="status"></span>
     </div>
+    <span class="hint">Rebuilding replaces any changes you typed into the grid.</span>
     <div class="summary" id="summary"></div>
   </section>
 
-  <div class="tablewrap"><table id="tbl"></table></div>
+  <div id="grids" style="display:grid;gap:22px"></div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script>
 const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const DOWL=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const KEY="semsched.v2";
+const ORD=["One","Two","Three","Four","Five","Six","Seven","Eight"];
+const KEY="semsched.v3";
 const $=s=>document.querySelector(s);
 
-const SAMPLE={
-  example:true,start:"2027-01-11",nsem:2,brk:1,maxc:3,dow:[1,2,3,4,5],
-  hol:"2027-01-18 MLK Day\n2027-03-15 to 2027-03-19 Spring Break",
+/* Framework taken from RAD2805_Total_Program_Hours.xlsx */
+const FRAMEWORK={
+  src:true,start:"2028-05-22",nsem:4,brk:0,maxc:3,hc:3,hk:8,h0:0,days:[1,2,3,4,5],
+  hol:[
+    "2028-05-22 NO CLASS","2028-05-23 ORIENTATION","2028-05-29 Memorial Day","2028-06-19 Juneteenth",
+    "2028-07-04 4th of July","2028-09-04 Labor Day","2028-09-20 Rosh Hashanah","2028-10-09 Columbus Day",
+    "2028-11-10 Veterans Day","2028-11-23 to 2028-11-24 Thanksgiving Break","2028-12-25 to 2028-12-29 Winter Break",
+    "2029-01-15 MLK Day","2029-02-19 Presidents Day","2029-03-30 Good Friday","2029-05-28 Memorial Day",
+    "2029-06-19 Juneteenth","2029-07-04 4th of July","2029-09-03 Labor Day","2029-09-10 Rosh Hashanah","2029-10-08 Columbus Day"
+  ].join("\n"),
   sems:[
-    {weeks:16,classes:[{n:"RAD 401",t:"Intro to Radiography",s:15},{n:"RAD 402",t:"Patient Care",s:15},{n:"RAD 403",t:"Radiographic Procedures I",s:20},{n:"RAD 404",t:"Radiation Physics",s:15}],clinics:[{n:"RAD 410",t:"Clinical Practicum I",s:6}]},
-    {weeks:16,classes:[{n:"RAD 411",t:"Radiographic Procedures II",s:20},{n:"RAD 412",t:"Image Production",s:15},{n:"RAD 413",t:"Radiation Protection",s:15},{n:"RAD 414",t:"Radiographic Pathology",s:15}],clinics:[{n:"RAD 420",t:"Clinical Practicum II",s:10}]}
+    {weeks:20,clinics:27,cdays:[2,4],cstart:5,lab:1,labels:{3:"Lab Class",4:"Online",5:"Online"},
+     classes:[{n:"RAD 101",s:15,d:"5"},{n:"RAD 102",s:20,d:"3"},{n:"RAD 103",s:15,d:"1"},{n:"RAD 104A",s:15,d:"3"},{n:"RAD 105",s:15,d:"5"},{n:"RAD 106",s:15,d:"1"}]},
+    {weeks:18,clinics:27,cdays:[2,4],cstart:1,lab:1,labels:{5:"Online"},
+     classes:[{n:"RAD 104B",s:15,d:"1"},{n:"RAD 201",s:15,d:"3"},{n:"RAD 202",s:20,d:"3"},{n:"RAD 203",s:15,d:"5"},{n:"RAD 204",s:20,d:"1"},{n:"RAD 205",s:15,d:"5"}]},
+    {weeks:16,clinics:35,cdays:[1,3,5],cstart:1,lab:1,labels:{2:"Online"},
+     classes:[{n:"RAD 301",s:15,d:"2"},{n:"RAD 302",s:20,d:"4"},{n:"RAD 303",s:15,d:"4"},{n:"RAD 304",s:15,d:"2"}]},
+    {weeks:22,clinics:36,cdays:[1,3,5],cstart:1,lab:1,labels:{2:"Online"},
+     classes:[{n:"RAD 401",s:15,d:"4"},{n:"RAD 402",s:20,d:"4"},{n:"RAD 403",s:15,d:"2"},{n:"RAD 404",s:15,d:"2"},{n:"RAD 406",s:15,d:"auto"}]}
   ]};
 
-let state=load()||structuredClone(SAMPLE);
-
+let state=load()||structuredClone(FRAMEWORK);
 function load(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const orderDays=a=>[...a].sort((x,y)=>((x||7)-(y||7)));
 
-/* ---------- form rendering ---------- */
+/* ---------- questionnaire ---------- */
 function renderForm(){
-  $("#start").value=state.start; $("#nsem").value=state.nsem; $("#brk").value=state.brk;
-  $("#maxc").value=state.maxc; $("#hol").value=state.hol;
-  $("#dow").innerHTML=[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" id="dow${d}" value="${d}" ${state.dow.includes(d)?"checked":""}>${DOW[d]}</label>`).join("");
+  for(const k of ["start","nsem","brk","maxc","hc","hk","h0","hol"]) $("#"+k).value=state[k];
+  $("#dow").innerHTML=[1,2,3,4,5,6,0].map(d=>`<label><input type="checkbox" id="dow${d}" value="${d}" ${state.days.includes(d)?"checked":""}>${DOW[d]}</label>`).join("");
   renderSems();
 }
-function blankSem(){const p=state.sems[state.sems.length-1];return{weeks:p?p.weeks:16,classes:[{n:"",t:"",s:15}],clinics:[]}}
+function blankSem(){const p=state.sems[state.sems.length-1];
+  return{weeks:p?p.weeks:18,clinics:p?p.clinics:24,cdays:p?[...p.cdays]:[2,4],cstart:1,lab:1,labels:{},classes:[{n:"",s:15,d:"auto"}]}}
 function renderSems(){
   while(state.sems.length<state.nsem)state.sems.push(blankSem());
   state.sems.length=state.nsem;
+  const days=orderDays(state.days);
   $("#sems").innerHTML=state.sems.map((s,i)=>`
-   <div class="sem" data-i="${i}">
-     <div class="sem-h"><h3>Semester ${i+1}${state.example&&i===0?' <span class="example">example data</span>':''}</h3>
-       <div class="q"><label for="wk${i}">Weeks</label><input type="number" id="wk${i}" min="1" max="52" value="${s.weeks}" data-k="weeks"></div></div>
-     ${listHTML(i,"classes","Required classes","RAD 401","var(--accent)")}
-     ${listHTML(i,"clinics","Required clinics (full day each)","RAD 410","var(--clinic)")}
-   </div>`).join("");
+  <div class="sem" data-i="${i}">
+    <div class="sub"><h3>Semester ${ORD[i]||i+1}</h3>${state.src?'<span class="src">from RAD2805 workbook</span>':''}</div>
+    <div class="sem-top">
+      <div class="q"><label for="wk${i}">How many weeks?</label><input type="number" id="wk${i}" min="1" max="52" value="${s.weeks}" data-k="weeks"></div>
+      <div class="q"><label for="cl${i}">How many clinic days?</label><input type="number" id="cl${i}" min="0" max="200" value="${s.clinics}" data-k="clinics"></div>
+      <div class="q"><label for="cs${i}">Clinics start in week</label><input type="number" id="cs${i}" min="1" max="52" value="${s.cstart}" data-k="cstart"></div>
+      <div class="q"><label for="lb${i}">Lab hours per week</label><input type="number" id="lb${i}" min="0" max="40" step="0.5" value="${s.lab}" data-k="lab"></div>
+    </div>
+    <div class="q"><span class="lbl">Clinic weekdays</span>
+      <div class="chips">${days.map(d=>`<label><input type="checkbox" id="cd${i}_${d}" data-cd="${d}" ${s.cdays.includes(d)?"checked":""}>${DOW[d]}</label>`).join("")}</div></div>
+    <div class="q"><span class="lbl">Day notes <span class="hint">(optional, shown on the first line of that day when there is no clinic, e.g. Online or Lab Class)</span></span>
+      <div class="labels">${days.map(d=>`<div class="q"><label for="lab${i}_${d}">${DOWL[d]}</label><input id="lab${i}_${d}" data-lab="${d}" value="${esc(s.labels[d]||"")}" placeholder="—"></div>`).join("")}</div></div>
+    <div class="list">
+      <span class="lbl">Required classes</span>
+      <div class="colh"><span>Course number</span><span>Units</span><span>Meets on</span><span></span></div>
+      ${s.classes.map((c,j)=>`
+      <div class="item">
+        <input id="cn${i}_${j}" aria-label="Course number" placeholder="RAD 101" value="${esc(c.n)}" data-j="${j}" data-f="n">
+        <input id="cu${i}_${j}" aria-label="Units" type="number" min="1" max="60" value="${c.s}" data-j="${j}" data-f="s" list="unitlist">
+        <select id="cd${i}_${j}" aria-label="Meets on" data-j="${j}" data-f="d">
+          <option value="auto"${c.d==="auto"?" selected":""}>Auto</option>
+          ${days.map(d=>`<option value="${d}"${String(c.d)===String(d)?" selected":""}>${DOWL[d]}</option>`).join("")}
+        </select>
+        <button type="button" class="ghost" data-del="${j}" aria-label="Remove class">✕</button>
+      </div>`).join("")}
+      <div><button type="button" data-add="1">+ Add class</button></div>
+    </div>
+  </div>`).join("");
 }
-function listHTML(i,kind,title,ph,col){
-  const rows=state.sems[i][kind].map((it,j)=>`
-    <div class="item"><input id="${kind}${i}_${j}n" aria-label="Course number" placeholder="${ph}" value="${esc(it.n)}" data-kind="${kind}" data-j="${j}" data-f="n">
-    <input id="${kind}${i}_${j}t" aria-label="Course title (optional)" placeholder="Title (optional)" value="${esc(it.t||"")}" data-kind="${kind}" data-j="${j}" data-f="t">
-    <input type="number" id="${kind}${i}_${j}s" aria-label="Sessions" min="1" max="200" value="${it.s}" data-kind="${kind}" data-j="${j}" data-f="s" list="sesslist">
-    <button type="button" class="ghost" data-del="${kind}" data-j="${j}" aria-label="Remove">✕</button></div>`).join("");
-  return `<div class="list"><div class="sub"><span class="lbl"><i class="dot" style="background:${col}"></i>${title}</span><span class="hint">Number · title · units</span></div>${rows||'<span class="hint">None</span>'}
-   <div><button type="button" data-add="${kind}">+ Add ${kind==="classes"?"class":"clinic"}</button></div></div>`;
-}
-function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
-
-document.body.insertAdjacentHTML("beforeend",'<datalist id="sesslist"><option value="15"><option value="20"></datalist>');
+document.body.insertAdjacentHTML("beforeend",'<datalist id="unitlist"><option value="15"><option value="20"></datalist>');
 
 $("#f").addEventListener("input",e=>{
-  const t=e.target;
+  const t=e.target,num=v=>Math.max(0,+v||0);
   if(t.id==="start")state.start=t.value;
   if(t.id==="nsem"){state.nsem=Math.max(1,Math.min(8,+t.value||1));renderSems();}
-  if(t.id==="brk")state.brk=Math.max(0,+t.value||0);
-  if(t.id==="maxc")state.maxc=Math.max(1,+t.value||1);
+  if(t.id==="brk")state.brk=num(t.value);
+  if(t.id==="maxc")state.maxc=Math.max(1,Math.min(5,+t.value||3));
+  if(t.id==="hc")state.hc=num(t.value);
+  if(t.id==="hk")state.hk=num(t.value);
+  if(t.id==="h0")state.h0=num(t.value);
   if(t.id==="hol")state.hol=t.value;
-  if(t.id.startsWith("dow"))state.dow=[...document.querySelectorAll("#dow input:checked")].map(x=>+x.value);
-  state.example=false;save();
+  if(t.id.startsWith("dow")){state.days=[...document.querySelectorAll("#dow input:checked")].map(x=>+x.value);renderSems();}
+  save();
 });
 $("#sems").addEventListener("input",e=>{
   const t=e.target,i=+t.closest(".sem").dataset.i,s=state.sems[i];
-  if(t.dataset.k==="weeks")s.weeks=Math.max(1,+t.value||1);
-  if(t.dataset.kind){const it=s[t.dataset.kind][+t.dataset.j];if(t.dataset.f==="n")it.n=t.value;else if(t.dataset.f==="t")it.t=t.value;else it.s=Math.max(1,+t.value||1);}
+  if(t.dataset.k)s[t.dataset.k]=Math.max(t.dataset.k==="lab"||t.dataset.k==="clinics"?0:1,+t.value||0);
+  if(t.dataset.cd)s.cdays=[...t.closest(".chips").querySelectorAll("input:checked")].map(x=>+x.dataset.cd);
+  if(t.dataset.lab){if(t.value.trim())s.labels[t.dataset.lab]=t.value;else delete s.labels[t.dataset.lab];}
+  if(t.dataset.f){const c=s.classes[+t.dataset.j];c[t.dataset.f]=t.dataset.f==="s"?Math.max(1,+t.value||1):t.value;}
   save();
 });
 $("#sems").addEventListener("click",e=>{
   const t=e.target.closest("button");if(!t)return;
   const i=+t.closest(".sem").dataset.i,s=state.sems[i];
-  if(t.dataset.add){s[t.dataset.add].push({n:"",t:"",s:t.dataset.add==="classes"?15:1});renderSems();
-    const k=t.dataset.add,j=s[k].length-1;document.getElementById(`${k}${i}_${j}n`)?.focus();}
-  if(t.dataset.del){s[t.dataset.del].splice(+t.dataset.j,1);renderSems();}
+  if(t.dataset.add){s.classes.push({n:"",s:15,d:"auto"});renderSems();document.getElementById(`cn${i}_${s.classes.length-1}`)?.focus();}
+  if(t.dataset.del!==undefined){s.classes.splice(+t.dataset.del,1);renderSems();}
   save();
 });
+$("#reset").addEventListener("click",()=>{state=structuredClone(FRAMEWORK);save();renderForm();run();status("Reloaded the RAD2805 framework.");});
 
 /* ---------- dates ---------- */
 const parse=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
-const fmt=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
-
+const fmtS=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+const fmtL=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+const serial=d=>(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-Date.UTC(1899,11,30))/864e5;
 function parseHolidays(txt){
   const map={};
-  txt.split("\n").forEach(line=>{
-    const m=line.trim().match(/^(\d{4}-\d{2}-\d{2})(?:\s*(?:to|-|–)\s*(\d{4}-\d{2}-\d{2}))?\s*(.*)$/i);
+  (txt||"").split("\n").forEach(line=>{
+    const m=line.trim().match(/^(\d{4}-\d{2}-\d{2})(?:\s*(?:to|–|—)\s*(\d{4}-\d{2}-\d{2}))?\s*(.*)$/i);
     if(!m)return;
-    let a=parse(m[1]),b=m[2]?parse(m[2]):a;
-    for(let d=a;d<=b;d=addDays(d,1))map[iso(d)]=m[3]||"Day off";
+    const a=parse(m[1]),b=m[2]?parse(m[2]):a;
+    for(let d=a;d<=b;d=addDays(d,1))map[iso(d)]=m[3]||"OFF";
   });
   return map;
 }
 
 /* ---------- scheduling ---------- */
-function nearestFree(n,ideal,ok){
-  for(let r=0;r<n;r++){
-    for(const k of [ideal-r,ideal+r]) if(k>=0&&k<n&&ok(k)) return k;
+function prefixes(){
+  const set=new Set();
+  state.sems.forEach(s=>s.classes.forEach(c=>{const m=c.n.trim().match(/^[A-Za-z]+/);if(m)set.add(m[0].toUpperCase())}));
+  return set.size?[...set]:["RAD"];
+}
+function buildSem(sem,si,firstDay,hol){
+  const rows=state.maxc, days=orderDays(state.days), cset=new Set(sem.cdays.filter(d=>days.includes(d)));
+  const mon=addDays(firstDay,-((firstDay.getDay()+6)%7));
+  const lastDay=addDays(mon,sem.weeks*7-1);
+  const classes=sem.classes.map((c,ci)=>({n:c.n.trim(),s:c.s,d:c.d,ci})).filter(c=>c.n);
+  const classDays=days.filter(d=>!cset.has(d)); const cdList=classDays.length?classDays:days;
+  const capDay=d=>rows-(sem.labels[d]?1:0);
+  // meeting days
+  const load={};cdList.forEach(d=>load[d]=0);
+  classes.forEach(c=>{if(c.d!=="auto"&&cdList.includes(+c.d)){c.days=[+c.d];load[+c.d]++}});
+  classes.filter(c=>!c.days).sort((a,b)=>b.s-a.s).forEach(c=>{
+    const pick=[...cdList].sort((a,b)=>(load[a]/capDay(a))-(load[b]/capDay(b))||cdList.indexOf(a)-cdList.indexOf(b))[0];
+    c.days=[pick];load[pick]++;
+  });
+  // grid
+  const weeks=[];const cells=[];
+  for(let w=0;w<sem.weeks;w++){
+    const wk={w:w+1,days:[]};
+    days.forEach(d=>{
+      const date=addDays(mon,w*7+((d+6)%7));
+      const cell={date,d,w:w+1,inRange:date>=firstDay&&date<=lastDay,kind:"out",label:"",items:[]};
+      wk.days.push(cell);cells.push(cell);
+    });
+    weeks.push(wk);
   }
-  return -1;
+  // pass 1: weekly pattern
+  let k=0;const rem={};classes.forEach(c=>rem[c.ci]=c.s);
+  cells.forEach(cell=>{
+    if(!cell.inRange)return;
+    const h=hol[iso(cell.date)];
+    if(h){cell.kind="holiday";cell.label=h;return}
+    if(cset.has(cell.d)&&cell.w>=sem.cstart&&k<sem.clinics){cell.kind="clinic";cell.label="Clinic "+(++k);return}
+    cell.kind="class";cell.label=sem.labels[cell.d]||"";
+    classes.forEach(c=>{if(c.days.includes(cell.d)&&rem[c.ci]>0&&cell.items.length<rows-(cell.label?1:0)){cell.items.push(c.ci);rem[c.ci]--}});
+  });
+  // pass 2: leftover units go to open days (empty days first)
+  const open=cells.filter(c=>c.kind==="class");
+  classes.forEach(c=>{
+    const fits=x=>!x.items.includes(c.ci)&&x.items.length<rows-(x.label?1:0);
+    for(const pass of [x=>!x.items.length&&!x.label,()=>true]){
+      for(const x of open){if(rem[c.ci]<=0)break;if(pass(x)&&fits(x)){x.items.push(c.ci);rem[c.ci]--}}
+    }
+  });
+  // number units in date order
+  const seen={};
+  open.forEach(x=>{x.items.sort((a,b)=>a-b);x.units=x.items.map(ci=>{seen[ci]=(seen[ci]||0)+1;return `${classes.find(c=>c.ci===ci).n} U${seen[ci]}`})});
+  // after the last scheduled day: Makeup/OFF
+  let lastIdx=-1;cells.forEach((x,i)=>{if(x.kind==="clinic"||(x.kind==="class"&&x.items.length))lastIdx=i});
+  cells.forEach((x,i)=>{if(i>lastIdx&&x.kind==="class"&&!x.items.length)x.label="Makeup/OFF"});
+  // lines
+  cells.forEach(x=>{
+    let L=[];
+    if(x.kind==="holiday"||x.kind==="clinic")L=[x.label];
+    else if(x.kind==="class"){const u=x.units||[];L=x.label?[x.label,...u]:(u.length>=rows?u:["",...u]);}
+    while(L.length<rows)L.push("");x.lines=L.slice(0,rows);
+    x.hi=x.kind==="holiday"||x.kind==="clinic"||x.label==="Makeup/OFF";
+  });
+  return{si,mon,first:firstDay,last:lastDay,weeks,classes,seen,rem,clinicsPlaced:k,clinicsWanted:sem.clinics,
+    cdays:[...cset],lab:sem.lab,nextStart:addDays(mon,sem.weeks*7+state.brk*7)};
 }
 function build(){
   if(!state.start){status("Enter the first day of Semester 1.");return null}
-  if(!state.dow.length){status("Pick at least one school day.");return null}
-  const hol=parseHolidays(state.hol), out=[];
-  let semStart=parse(state.start);
-  state.sems.forEach((sem,si)=>{
-    const endEx=addDays(semStart,sem.weeks*7);
-    const all=[],days=[];
-    for(let d=new Date(semStart);d<endEx;d=addDays(d,1)){
-      if(!state.dow.includes(d.getDay()))continue;
-      const week=Math.floor((d-semStart)/864e5/7)+1;
-      const row={date:new Date(d),week,slots:[],clinic:null,holiday:hol[iso(d)]||null};
-      all.push(row); if(!row.holiday)days.push(row);
-    }
-    const D=days.length;
-    const classes=sem.classes.filter(c=>c.n.trim()).map((c,ci)=>({...c,n:c.n.trim(),t:(c.t||"").trim(),ci}));
-    const clinics=sem.clinics.filter(c=>c.n.trim()).map(c=>({...c,n:c.n.trim(),t:(c.t||"").trim()}));
-    // clinics: round-robin order, spread evenly
-    const seq=[],cnt=clinics.map(()=>0);let more=true;
-    while(more){more=false;clinics.forEach((c,k)=>{if(cnt[k]<c.s){cnt[k]++;seq.push({n:c.n,t:c.t,k:cnt[k],of:c.s});more=true}})}
-    const C=seq.length;let unplaced=[];
-    seq.forEach((c,j)=>{
-      const k=nearestFree(D,Math.floor((j+.5)*D/C),x=>!days[x].clinic);
-      if(k<0)unplaced.push(`${c.n} U${c.k}`);else days[k].clinic=c;
-    });
-    // classes: spread each across the non-clinic days
-    const free=days.filter(d=>!d.clinic),R=free.length;
-    const order=[...classes].sort((a,b)=>b.s-a.s);
-    order.forEach(c=>{
-      for(let j=0;j<c.s;j++){
-        const ideal=Math.floor((j+.5)*R/c.s);
-        let k=nearestFree(R,ideal,x=>free[x].slots.length<state.maxc&&!free[x].slots.some(s=>s.ci===c.ci));
-        if(k<0)k=nearestFree(R,ideal,x=>free[x].slots.length<state.maxc);
-        if(k<0)unplaced.push(`${c.n} U${j+1}`);
-        else free[k].slots.push({n:c.n,t:c.t,ci:c.ci,of:c.s});
-      }
-    });
-    // number sessions chronologically, sort slots by class order
-    const seen={};
-    free.forEach(d=>{d.slots.sort((a,b)=>a.ci-b.ci);d.slots.forEach(s=>{seen[s.ci]=(seen[s.ci]||0)+1;s.k=seen[s.ci]})});
-    const placed={};classes.forEach(c=>placed[c.n]=seen[c.ci]||0);
-    out.push({si,start:semStart,end:addDays(endEx,-1),weeks:sem.weeks,rows:all,classes,clinics,placed,
-      clinicPlaced:clinics.map(c=>({n:c.n,t:c.t,s:c.s,p:seq.filter((x,j)=>x.n===c.n&&days.some(d=>d.clinic===x)).length})),
-      D,C,need:C+Math.ceil(classes.reduce((a,c)=>a+c.s,0)/state.maxc),unplaced});
-    semStart=addDays(endEx,state.brk*7);
-  });
-  return out;
+  if(!state.days.length){status("Pick at least one school day.");return null}
+  const hol=parseHolidays(state.hol);let start=parse(state.start);
+  return state.sems.map((s,i)=>{const r=buildSem(s,i,start,hol);start=r.nextStart;return r});
 }
 
-/* ---------- output ---------- */
+/* ---------- hours ---------- */
+function weekHours(wk,lab,pre){
+  const re=new RegExp("^\\s*("+pre.join("|")+")\\s*\\d","i");let c=0,k=0;
+  wk.days.forEach(x=>x.lines.forEach(l=>{if(re.test(l))c++;else if(/^\s*clinic\b/i.test(l))k++}));
+  return{cls:c*state.hc,lab:+lab||0,cli:k*state.hk};
+}
+
+/* ---------- render ---------- */
 let result=null;
-function hue(ci){return `hsl(${(ci*67+190)%360} 55% 50%)`}
-function renderSchedule(res){
-  const M=state.maxc;
-  let h=`<thead><tr><th>Date</th><th>Day</th><th>Week</th>${Array.from({length:M},(_,i)=>`<th>Class ${i+1}</th>`).join("")}</tr></thead><tbody>`;
-  res.forEach(s=>{
-    h+=`<tr class="semrow" data-kind="sem"><td colspan="${3+M}" contenteditable="true">Semester ${s.si+1} · ${fmt(s.start)} – ${fmt(s.end)} · ${s.weeks} weeks</td></tr>`;
-    let lastWeek=0;
-    s.rows.forEach(r=>{
-      const ws=r.week!==lastWeek?" weekstart":"";lastWeek=r.week;
-      const head=`<td>${fmt(r.date)}</td><td>${DOWL[r.date.getDay()]}</td><td>${r.week}</td>`;
-      if(r.holiday) h+=`<tr class="holiday${ws}">${head}<td class="slot" colspan="${M}" contenteditable="true">No class: ${esc(r.holiday)}</td></tr>`;
-      else if(r.clinic) h+=`<tr class="clinic${ws}">${head}<td class="slot" colspan="${M}" contenteditable="true">CLINIC (all day): ${esc(r.clinic.n)} U${r.clinic.k}</td></tr>`;
-      else h+=`<tr class="${ws}">${head}${Array.from({length:M},(_,i)=>{const x=r.slots[i];
-        return `<td class="slot" contenteditable="true">${x?`<span class="chip" style="--c:${hue(x.ci)}" title="${esc(x.t)} · unit ${x.k} of ${x.of}">${esc(x.n)} U${x.k}</span>`:""}</td>`}).join("")}</tr>`;
+function renderAll(){
+  const pre=prefixes(),days=orderDays(state.days);let run=+state.h0||0;
+  $("#grids").innerHTML=result.map(s=>{
+    let h=`<div class="semgrid"><h3>Semester ${ORD[s.si]||s.si+1}<small>${fmtL(s.first)} – ${fmtL(s.last)} · ${s.weeks.length} weeks</small></h3>
+    <div class="tablewrap"><table><thead><tr><th>Week</th>${days.map(d=>`<th>${DOWL[d]}</th>`).join("")}<th>Class</th><th>Lab</th><th>Clinic</th><th>Week</th><th>Total</th></tr></thead><tbody>`;
+    s.weeks.forEach((wk,wi)=>{
+      const hr=weekHours(wk,s.lab,pre),sum=hr.cls+hr.lab+hr.cli;run+=sum;
+      h+=`<tr><td class="wk">Week ${wk.w}</td>${wk.days.map((x,di)=>`<td class="day${x.inRange?"":" out"}"><div class="dt">${fmtS(x.date)}</div>${x.lines.map((l,li)=>
+        `<div class="ln${x.hi&&li===0?" hi":""}"${x.inRange?` contenteditable="true" data-s="${s.si}" data-w="${wi}" data-d="${di}" data-l="${li}"`:""}>${esc(l)}</div>`).join("")}</td>`).join("")}
+        <td class="hr">${hr.cls}</td><td class="hr">${hr.lab}</td><td class="hr">${hr.cli}</td><td class="hr tot">${sum}</td><td class="hr tot">${run}</td></tr>`;
     });
-  });
-  $("#tbl").innerHTML=h+"</tbody>";
-  $("#summary").innerHTML=res.map(s=>{
-    const ok=!s.unplaced.length;
-    const li=[...s.classes.map(c=>`<li>${esc(c.n)}${c.t?" "+esc(c.t):""}: U1–U${s.placed[c.n]} of ${c.s} placed</li>`),
-              ...s.clinicPlaced.map(c=>`<li>${esc(c.n)}${c.t?" "+esc(c.t):""} (clinic): ${c.p}/${c.s} days</li>`)].join("");
-    return `<div class="sumcard"><div class="sub"><h3>Semester ${s.si+1}</h3><span class="pill ${ok?"ok":"bad"}">${ok?"Everything fits":"Doesn't fit"}</span></div>
-      <span class="hint">${s.D} school days available · ${s.C} clinic days · needs at least ${s.need} days</span>
-      ${li?`<ul>${li}</ul>`:'<span class="hint">No classes or clinics listed.</span>'}
-      ${ok?"":`<span class="hint" style="color:var(--warn)">Couldn't place: ${esc(s.unplaced.join(", "))}. Add weeks, add a school day, or raise the classes-per-day limit.</span>`}</div>`}).join("");
+    s.total=run;
+    return h+`</tbody></table></div></div>`;
+  }).join("");
+  let prev=+state.h0||0;
+  $("#summary").innerHTML=result.map(s=>{
+    const short=s.classes.filter(c=>s.rem[c.ci]>0),clinicShort=s.clinicsPlaced<s.clinicsWanted,ok=!short.length&&!clinicShort;
+    const hrs=s.total-prev;prev=s.total;
+    return `<div class="sumcard"><div class="sub"><h3>Semester ${ORD[s.si]||s.si+1}</h3><span class="pill ${ok?"ok":"bad"}">${ok?"Everything fits":"Doesn't fit"}</span></div>
+      <span class="hint">${fmtL(s.first)} – ${fmtL(s.last)} · ${hrs} hrs this semester · ${s.total} total</span>
+      <ul><li>Clinic 1–${s.clinicsPlaced} of ${s.clinicsWanted} on ${s.cdays.map(d=>DOW[d]).join("/")||"no days"}</li>
+      ${s.classes.map(c=>`<li>${esc(c.n)}: U1–U${s.seen[c.ci]||0} of ${c.s} · ${c.days.map(d=>DOW[d]).join("/")}</li>`).join("")}</ul>
+      ${ok?"":`<span class="hint" style="color:var(--warn)">${clinicShort?`Only ${s.clinicsPlaced} of ${s.clinicsWanted} clinic days fit. `:""}${short.length?`Missing units: ${short.map(c=>`${esc(c.n)} (${s.rem[c.ci]})`).join(", ")}. `:""}Add weeks, add a clinic weekday, or raise lines per day.</span>`}
+    </div>`}).join("");
 }
-function tableData(){
-  const rows=[];
-  $("#tbl").querySelectorAll("tr").forEach(tr=>{
-    const cells=[...tr.children].map(td=>td.innerText.trim());
-    if(tr.dataset.kind==="sem")rows.push([cells[0]]);
-    else if(tr.classList.contains("clinic")||tr.classList.contains("holiday"))rows.push([...cells.slice(0,3),cells[3]]);
-    else rows.push(cells);
-  });
-  return rows;
-}
-function status(t){$("#status").textContent=t}
-
-$("#build").addEventListener("click",()=>{
-  result=build();if(!result)return;renderSchedule(result);
-  const bad=result.some(s=>s.unplaced.length);
-  status(bad?"Built, but some sessions didn't fit. See below.":"Schedule built.");
+$("#grids").addEventListener("input",e=>{
+  const t=e.target.closest(".ln");if(!t)return;
+  const s=result[+t.dataset.s],x=s.weeks[+t.dataset.w].days[+t.dataset.d];
+  x.lines[+t.dataset.l]=t.innerText.replace(/\n+$/,"");
+  clearTimeout(window._rt);window._rt=setTimeout(()=>{const a=document.activeElement,id=a&&a.dataset&&[a.dataset.s,a.dataset.w,a.dataset.d,a.dataset.l].join();
+    const range=getSelection().rangeCount?getSelection().getRangeAt(0).startOffset:0;
+    renderAll();if(id){const n=[...document.querySelectorAll(".ln[data-s]")].find(z=>[z.dataset.s,z.dataset.w,z.dataset.d,z.dataset.l].join()===id);
+      if(n){n.focus();try{const r=document.createRange();r.setStart(n.firstChild||n,Math.min(range,(n.firstChild||n).length||0));r.collapse(true);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}catch(_){}}}},700);
 });
+function status(t){$("#status").textContent=t}
+function run(){result=build();if(result)renderAll();}
 
+$("#build").addEventListener("click",()=>{run();if(!result)return;
+  const bad=result.some(s=>s.classes.some(c=>s.rem[c.ci]>0)||s.clinicsPlaced<s.clinicsWanted);
+  status(bad?"Built, but something didn't fit. See the summary.":"Schedule built.");});
+
+/* ---------- Excel (same layout as the workbook) ---------- */
+const colL=i=>{let s="";i++;while(i){const m=(i-1)%26;s=String.fromCharCode(65+m)+s;i=Math.floor((i-1)/26)}return s};
+function workbook(){
+  const days=orderDays(state.days),nd=days.length,rows=state.maxc,H=Math.max(rows+1,4);
+  const std=days.join()==="1,2,3,4,5";
+  const HC=1+nd*2+1, NC=HC+1, pre=prefixes();
+  const B={top:{style:"thin",color:{rgb:"999999"}},bottom:{style:"thin",color:{rgb:"999999"}},left:{style:"thin",color:{rgb:"999999"}},right:{style:"thin",color:{rgb:"999999"}}};
+  const S=(o={})=>({font:{bold:true,name:"Arial",sz:10},alignment:{horizontal:"center",vertical:"center",wrapText:true},border:B,...o});
+  const YEL={fill:{patternType:"solid",fgColor:{rgb:"FFFF00"}}},WK={fill:{patternType:"solid",fgColor:{rgb:"FFE598"}}};
+  const wb=XLSX.utils.book_new();const names=[];
+  result.forEach((s,si)=>{
+    const ws={},merges=[],name=`Semester ${ORD[si]||si+1}`;names.push(name);
+    const put=(r,c,cell)=>{ws[colL(c)+(r+1)]=cell};
+    put(0,HC,si===0?{t:"n",v:+state.h0||0,s:S()}:{t:"n",f:`'${names[si-1]}'!${colL(HC)}${result[si-1]._totalRow+1}`,s:S()});
+    days.forEach((d,j)=>{put(1,1+2*j,{t:"s",v:DOWL[d],s:S()});put(1,2+2*j,{t:"s",v:"",s:S()});merges.push({s:{r:1,c:1+2*j},e:{r:1,c:2+2*j}})});
+    let prevSum=null;
+    s.weeks.forEach((wk,wi)=>{
+      const r=2+wi*H, cr=colL(HC);
+      wk.days.forEach((x,j)=>{
+        const c=1+2*j;let f;
+        if(std){
+          if(j>0)f=`${colL(c-2)}${r+1}+1`;
+          else if(wi>0)f=`${colL(1+2*(nd-1))}${r-H+1}+3`;
+          else if(si>0)f=`'${names[si-1]}'!${colL(1+2*(nd-1))}${result[si-1]._lastDateRow+1}+3+${7*state.brk}`;
+        }
+        put(r,c,{t:"n",v:serial(x.date),z:"d-mmm",...(f?{f}:{}),s:S()});put(r,c+1,{t:"s",v:"",s:S()});merges.push({s:{r,c},e:{r,c:c+1}});
+        for(let li=0;li<H-1;li++){
+          const v=li<rows?x.lines[li]:"";const hi=x.hi&&li===0&&v;
+          put(r+1+li,c,{t:"s",v,s:S(hi?YEL:{})});put(r+1+li,c+1,{t:"s",v:"",s:S(hi?YEL:{})});merges.push({s:{r:r+1+li,c},e:{r:r+1+li,c:c+1}});
+        }
+      });
+      put(r+1,0,{t:"s",v:`Week ${wk.w}`,s:S({...WK,alignment:{horizontal:"left",vertical:"center"}})});
+      const rng=`${colL(1)}${r+2}:${colL(2*nd)}${r+H}`;
+      const cnt=pre.map(p=>`COUNTIF(${rng},"${p}*")`).join("+");
+      put(r,HC,{t:"n",f:`(${cnt})*${state.hc}`,s:S()});put(r,NC,{t:"s",v:"CLASS",s:S()});
+      put(r+1,HC,{t:"n",v:+s.lab||0,s:S()});put(r+1,NC,{t:"s",v:"LAB",s:S()});
+      put(r+2,HC,{t:"n",f:`COUNTIF(${rng},"Clinic*")*${state.hk}`,s:S()});put(r+2,NC,{t:"s",v:"CLINIC",s:S()});
+      put(r+3,HC,{t:"n",f:`SUM(${cr}${r+1}:${cr}${r+3})`,s:S(YEL)});
+      put(r+3,NC,{t:"n",f:prevSum===null?`${cr}${r+4}+${cr}1`:`${colL(NC)}${prevSum+1}+${cr}${r+4}`,s:S(YEL)});
+      prevSum=r+3;s._lastDateRow=r;
+    });
+    const tr=2+s.weeks.length*H;s._totalRow=tr;
+    put(tr,HC,{t:"n",f:`${colL(NC)}${prevSum+1}`,s:S(YEL)});put(tr+1,HC,{t:"s",v:"TOTAL HOURS",s:S()});
+    ws["!ref"]=`A1:${colL(NC)}${tr+2}`;ws["!merges"]=merges;
+    ws["!cols"]=[{wch:9},...Array(nd*2).fill({wch:13}),{wch:3},{wch:7},{wch:9}];
+    XLSX.utils.book_append_sheet(wb,ws,name);
+  });
+  return wb;
+}
 let downloads=null;
 (async()=>{try{downloads=await window.claude?.use?.("downloads")}catch(e){}
-  if(!downloads){$("#xlsx").hidden=true;$("#csv").hidden=true;}})();
-function fname(ext){return `semester-schedule-${state.start||"draft"}.${ext}`}
-async function offer(filename,data){
-  if(!result){status("Build the schedule first.");return}
-  try{await downloads.save({filename,data});status("Saved "+filename+".")}
+  if(!downloads)$("#xlsx").hidden=true;})();
+$("#xlsx").addEventListener("click",async()=>{
+  if(!result)return status("Build the schedule first.");
+  const name=`Program_Schedule_${state.start||"draft"}.xlsx`;
+  try{const data=new Uint8Array(XLSX.write(workbook(),{type:"array",bookType:"xlsx"}));
+    await downloads.save({filename:name,data});status("Saved "+name+".")}
   catch(e){status(e&&e.code==="declined"?"Download cancelled.":"Download isn't available here. Use Copy for Sheets instead.")}
-}
-$("#csv").addEventListener("click",()=>{if(!result)return status("Build the schedule first.");
-  const csv=tableData().map(r=>r.map(c=>`"${c.replace(/"/g,'""')}"`).join(",")).join("\r\n");
-  offer(fname("csv"),"﻿"+csv);});
-$("#xlsx").addEventListener("click",()=>{if(!result)return status("Build the schedule first.");
-  const rows=tableData(),ws=XLSX.utils.aoa_to_sheet(rows),M=state.maxc,merges=[];
-  rows.forEach((r,i)=>{if(r.length===1)merges.push({s:{r:i,c:0},e:{r:i,c:2+M}});else if(r.length===4&&M>1)merges.push({s:{r:i,c:3},e:{r:i,c:2+M}})});
-  ws["!merges"]=merges;ws["!cols"]=[{wch:14},{wch:11},{wch:6},...Array(M).fill({wch:34})];
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Schedule");
-  offer(fname("xlsx"),new Uint8Array(XLSX.write(wb,{type:"array",bookType:"xlsx"})));});
+});
 $("#copy").addEventListener("click",async()=>{
   if(!result)return status("Build the schedule first.");
-  const tsv=tableData().map(r=>r.join("\t")).join("\n");
+  const days=orderDays(state.days),out=[];
+  result.forEach(s=>{out.push([`Semester ${ORD[s.si]||s.si+1}`]);out.push(["",...days.map(d=>DOWL[d])]);
+    s.weeks.forEach(wk=>{out.push(["",...wk.days.map(x=>fmtS(x.date))]);
+      for(let li=0;li<state.maxc;li++)out.push([li===0?`Week ${wk.w}`:"",...wk.days.map(x=>x.lines[li]||"")]);});out.push([]);});
+  const tsv=out.map(r=>r.join("\t")).join("\n");
   try{await navigator.clipboard.writeText(tsv);status("Copied. Paste into cell A1 of Google Sheets or Excel.")}
-  catch(e){const r=document.createRange();r.selectNodeContents($("#tbl"));const s=getSelection();s.removeAllRanges();s.addRange(r);status("Table selected. Press Ctrl+C / ⌘C to copy.")}
+  catch(e){status("Copy was blocked here. Use Download Excel instead.")}
 });
 
-renderForm();
-result=build();if(result)renderSchedule(result);
-if(state.example)status("Showing example data. Replace it with your own.");
+renderForm();run();
+if(state.src)status("Loaded the RAD2805 framework. Change any answer and press Build schedule.");
 </script>
